@@ -21,16 +21,26 @@ SpherePlanning::SpherePlanning() {
     _constrained_space = std::make_shared<ompl::base::AtlasStateSpace>(_space, _constraint);
     _constrained_space_info = std::make_shared<ompl::base::ConstrainedSpaceInformation>(_constrained_space);
     _constraint->setTolerance(1e-4);
+    _constraint->setMaxIterations(50);
+
     _constrained_space->setDelta(0.05);
     _constrained_space->setLambda(2.0);
-    _constrained_space->setRho(1);
-    _constrained_space->setEpsilon(0.001);
 
-    // _state_validity_checker = std::make_shared<SphereValidityChecker>(_constrained_space_info);
+    _constrained_space->setRho(0.2);
+    _constrained_space->setEpsilon(0.001);
+    _constrained_space->setAlpha(0.3);
+    _constrained_space->setExploration(0.5);
+    _constrained_space->setMaxChartsPerExtension(500);
+    _constrained_space->setSeparated(true);
+    auto &&atlas = _constrained_space;
+    _constrained_space->setBiasFunction([atlas](ompl::base::AtlasChart *c) -> double {
+        return (atlas->getChartCount() - c->getNeighborCount()) + 1;
+    });
+
+    _state_validity_checker = std::make_shared<SphereValidityChecker>(_constrained_space_info);
     _planner = std::make_shared<ompl::geometric::RRTConnect>(_constrained_space_info);
-    _planner->as<ompl::geometric::RRTConnect>()->setRange(0.05);
+    _planner->setRange(0.05);
     _simple_setup = std::make_shared<ompl::geometric::SimpleSetup>(_constrained_space_info);
-    // TODO: add parameter setting
 
     _simple_setup->setPlanner(_planner);
     _simple_setup->setStateValidityChecker(_state_validity_checker);
@@ -43,14 +53,12 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start, co
     sstart->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(start);
     sgoal->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(goal);
 
-    std::cout << _constraint->distance(goal) << std::endl;
-
     _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sstart.get());
     _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sgoal.get());
 
     _simple_setup->setStartAndGoalStates(sstart, sgoal);
     _simple_setup->setup();
-    _simple_setup->solve(5);
+    _simple_setup->solve(10);
     // TODO: do something after a path is found
 }
 

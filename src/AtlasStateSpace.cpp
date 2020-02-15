@@ -200,7 +200,7 @@ void ompl::base::AtlasStateSampler::sampleGaussian(State *state, const State *me
 ompl::base::AtlasStateSpace::AtlasStateSpace(const StateSpacePtr &ambientSpace, const ConstraintPtr &constraint,
                                              bool separate)
   : ConstrainedStateSpace(ambientSpace, constraint)
-  , biasFunction_([](AtlasChart *) -> double { return 1; })
+  , biasFunction_([](AtlasChart *c) -> double { return 1; })
   , separate_(separate)
 {
     setRho(delta_ * ompl::magic::ATLAS_STATE_SPACE_RHO_MULTIPLIER);
@@ -225,6 +225,7 @@ ompl::base::AtlasStateSpace::~AtlasStateSpace()
 
 void ompl::base::AtlasStateSpace::clear()
 {
+    anchors_.clear();
     // Delete the non-anchor charts
     for (auto chart : charts_)
         delete chart;
@@ -241,16 +242,13 @@ void ompl::base::AtlasStateSpace::clear()
     chartNN_.clear();
     chartPDF_.clear();
 
-    // Reinstate the anchor charts
-    for (auto anchor : anchors_)
-        newChart(anchor);
-
     ConstrainedStateSpace::clear();
 }
 
 ompl::base::AtlasChart *ompl::base::AtlasStateSpace::anchorChart(const ompl::base::State *state) const
 {
     auto anchor = cloneState(state)->as<StateType>();
+    anchors_.push_back(anchor);
 
     // This could fail with an exception. We cannot recover if that happens.
     AtlasChart *chart = newChart(anchor);
@@ -345,10 +343,10 @@ ompl::base::AtlasChart *ompl::base::AtlasStateSpace::owningChart(const StateType
 
     double best = epsilon_;
     AtlasChart *chart = nullptr;
-    for (auto & near : nearby)
+    for (auto near = nearby.begin(); near != nearby.end(); ++near)
     {
         // The point must lie in the chart's validity region and polytope
-        auto owner = charts_[near.second];
+        auto owner = charts_[near->second];
         owner->psiInverse(*state, u_t);
         owner->phi(u_t, *temp);
 

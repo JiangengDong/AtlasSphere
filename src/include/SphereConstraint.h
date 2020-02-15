@@ -17,7 +17,7 @@ public:
     }
 
     void jacobian(const Eigen::Ref<const Eigen::VectorXd> &x, Eigen::Ref<Eigen::MatrixXd> out) const override {
-        out = x.transpose().normalized();
+        out = 2*x.transpose();
     }
 };
 

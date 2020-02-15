@@ -26,7 +26,7 @@ public:
 private:
     ompl::base::StateSpacePtr _space;
     ompl::base::ConstraintPtr _constraint;
-    ompl::base::ConstrainedStateSpacePtr _constrained_space;
+    ompl::base::AtlasStateSpacePtr _constrained_space;
     ompl::base::ConstrainedSpaceInformationPtr _constrained_space_info;
     ompl::base::StateValidityCheckerPtr _state_validity_checker;
     ompl::base::PlannerPtr _planner;

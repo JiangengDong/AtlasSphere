@@ -30,6 +30,10 @@ public:
 
     bool exportTree(const std::string & filename, int filetype = 0) const;
 
+    bool exportPath(const std::string &filename, std::ios_base::openmode mode=std::ios_base::out|std::ios_base::app) const;
+
+    bool isValid(const Eigen::Ref<const Eigen::VectorXd> &state) const;
+
     bool init;
 
 private:

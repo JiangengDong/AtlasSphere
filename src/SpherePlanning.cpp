@@ -38,8 +38,10 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start, co
     setStartGoal(start, goal);
     auto status = _simple_setup->solve(10);
     if (status == ompl::base::PlannerStatus::EXACT_SOLUTION) {
+        _simple_setup->getPlannerData(*_planner_data);
         return true;
-    }
+    } else
+        return false;
 }
 
 bool SpherePlanning::clear() {
@@ -51,7 +53,6 @@ bool SpherePlanning::clear() {
 
 bool SpherePlanning::printStat() const {
     std::stringstream ss;
-    _simple_setup->getPlannerData(*_planner_data);
     ss << std::endl;
     ss << "\tNum of charts in atlas: " << _constrained_space->getChartCount() << std::endl;
     ss << "\tFrontier charts percentage in atlas: " << _constrained_space->estimateFrontierPercent() << std::endl;
@@ -69,7 +70,6 @@ bool SpherePlanning::exportAtlas(const std::string &filename) const {
 }
 
 bool SpherePlanning::exportTree(const std::string &filename, int filetype) const {
-    _simple_setup->getPlannerData(*_planner_data);
     switch (filetype) {
         case 0: {
             std::ofstream gmlFile(filename + ".graphml");
@@ -94,6 +94,21 @@ bool SpherePlanning::exportTree(const std::string &filename, int filetype) const
     }
     OMPL_INFORM("Tree has been written to file %s. ", filename.c_str());
     return true;
+}
+
+bool SpherePlanning::exportPath(const std::string &filename, std::ios_base::openmode mode) const {
+    auto path = _simple_setup->getSolutionPath();
+    std::ofstream file(filename, mode);
+    path.printAsMatrix(file);
+    file.close();
+    return true;
+}
+
+bool SpherePlanning::isValid(const Eigen::Ref<const Eigen::VectorXd> &state) const {
+    ompl::base::ScopedState<> sstate(_constrained_space);
+
+    sstate->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(state);
+    return _state_validity_checker->isValid(sstate.get());
 }
 
 bool SpherePlanning::setAmbientStateSpace() {

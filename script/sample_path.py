@@ -5,16 +5,17 @@ This is a script that uses the cpp library SpherePlanning to sample paths
 whose starts and goals are on a unit sphere.
 """
 
-import numpy as np
 import h5py
+import numpy as np
 from SpherePlanning import SpherePlanning
+
 
 def main():
     """main function to sample paths."""
     num_path = 20
     sphere_planning = SpherePlanning()
     collisions = []
-    with h5py.File("data/paths.hdf5", 'w') as h5_file:
+    with h5py.File("data/paths2.hdf5", 'w') as h5_file:
         for i in range(num_path):
             print("Sampling the %dth start and goal..." % i)
             while True:
@@ -33,6 +34,7 @@ def main():
             if sphere_planning.plan(start, goal):
                 path = sphere_planning.getPath()
                 h5_file.create_dataset("path%d" % i, data=path)
+            sphere_planning.clear()
         collisions = np.array(collisions)
         h5_file.create_dataset("collision", data=collisions)
 

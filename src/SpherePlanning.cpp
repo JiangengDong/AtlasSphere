@@ -16,6 +16,7 @@
 #include "SphereValidityChecker.h"
 
 SpherePlanning::SpherePlanning() {
+    ompl::msg::setLogLevel(ompl::msg::LOG_INFO);
     init = setAmbientStateSpace()
            && setConstraint()
            && setConstrainedStateSpace()
@@ -102,6 +103,20 @@ bool SpherePlanning::exportPath(const std::string &filename, std::ios_base::open
     path.printAsMatrix(file);
     file.close();
     return true;
+}
+
+Eigen::MatrixXd SpherePlanning::getPath() {
+    auto path = _simple_setup->getSolutionPath();
+    std::size_t n = path.getStateCount();
+    Eigen::MatrixXd pathM(n, 3);
+    std::vector<double> temp;
+    for(std::size_t i=0; i<n;i++) {
+        _constrained_space->copyToReals(temp, path.getState(i));
+        pathM(i, 0) = temp[0];
+        pathM(i, 1) = temp[1];
+        pathM(i, 2) = temp[2];
+    }
+    return pathM;
 }
 
 bool SpherePlanning::isValid(const Eigen::Ref<const Eigen::VectorXd> &state) const {

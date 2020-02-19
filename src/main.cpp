@@ -37,6 +37,4 @@ int main(int argc, char **argv) {
         }
         spherePlanning.clear();
     }
-
-    // TODO: export collision to another file
 }

@@ -99,10 +99,19 @@ bool SpherePlanning::exportTree(const std::string &filename, int filetype) const
 
 bool SpherePlanning::exportPath(const std::string &filename, std::ios_base::openmode mode) const {
     auto path = _simple_setup->getSolutionPath();
-    std::ofstream file(filename, mode);
+    std::ofstream file(filename+".txt", mode);
     path.printAsMatrix(file);
     file.close();
     return true;
+}
+
+bool SpherePlanning::exportAll() const {
+    std::ofstream file("data/sphere_info.txt");
+    file << "1" << std::endl;
+    file.close();
+    exportAtlas("data/sphere_atlas");
+    exportTree("data/sphere_graph");
+    exportPath("data/sphere_path");
 }
 
 Eigen::MatrixXd SpherePlanning::getPath() {

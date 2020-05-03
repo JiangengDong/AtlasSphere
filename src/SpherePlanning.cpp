@@ -66,7 +66,7 @@ bool SpherePlanning::exportAtlas(const std::string &filename) const {
     std::ofstream file(filename + ".ply");
     _constrained_space->printPLY(file);
     file.close();
-    OMPL_INFORM("Atlas has been written to file %s. ", filename.c_str());
+    OMPL_INFORM("Atlas has been written to file %s.ply. ", filename.c_str());
     return true;
 }
 
@@ -76,24 +76,26 @@ bool SpherePlanning::exportTree(const std::string &filename, int filetype) const
             std::ofstream gmlFile(filename + ".graphml");
             _planner_data->printGraphML(gmlFile);
             gmlFile.close();
+            OMPL_INFORM("Tree has been written to file %s.graphml. ", filename.c_str());
             break;
         }
         case 1: {
             std::ofstream plyFile(filename + ".ply");
             _planner_data->printPLY(plyFile);
             plyFile.close();
+            OMPL_INFORM("Tree has been written to file %s.ply. ", filename.c_str());
             break;
         }
         case 2: {
             std::ofstream gvzFile(filename + ".dot");
             _planner_data->printGraphviz(gvzFile);
             gvzFile.close();
+            OMPL_INFORM("Tree has been written to file %s.dot. ", filename.c_str());
             break;
         }
         default:
             break;
     }
-    OMPL_INFORM("Tree has been written to file %s. ", filename.c_str());
     return true;
 }
 
@@ -102,16 +104,17 @@ bool SpherePlanning::exportPath(const std::string &filename, std::ios_base::open
     std::ofstream file(filename+".txt", mode);
     path.printAsMatrix(file);
     file.close();
+    OMPL_INFORM("Path has been written to file %s.txt. ", filename.c_str());
     return true;
 }
 
 bool SpherePlanning::exportAll() const {
-    std::ofstream file("data/sphere_info.txt");
+    std::ofstream file("./data/sphere_info.txt");
     file << "1" << std::endl;
     file.close();
-    exportAtlas("data/sphere_atlas");
-    exportTree("data/sphere_graph");
-    exportPath("data/sphere_path");
+    exportAtlas("./data/sphere_atlas");
+    exportTree("./data/sphere_graph");
+    exportPath("./data/sphere_path");
 }
 
 Eigen::MatrixXd SpherePlanning::getPath() {

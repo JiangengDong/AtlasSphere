@@ -13,6 +13,7 @@
 #include <ompl/base/StateValidityChecker.h>
 #include <ompl/base/Planner.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/base/PlannerData.h>
 
@@ -47,7 +48,7 @@ private:
     ompl::base::AtlasStateSpacePtr _constrained_space;
     ompl::base::ConstrainedSpaceInformationPtr _constrained_space_info;
     ompl::base::StateValidityCheckerPtr _state_validity_checker;
-    std::shared_ptr<ompl::geometric::RRTConnect> _planner;
+    ompl::base::PlannerPtr _planner;
     ompl::geometric::SimpleSetupPtr _simple_setup;
 
     // temporary variable

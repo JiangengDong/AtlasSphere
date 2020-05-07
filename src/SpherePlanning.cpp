@@ -8,6 +8,9 @@
 #include <ompl/base/spaces/constraint/AtlasStateSpace.h>
 #include <ompl/base/ConstrainedSpaceInformation.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
+#include <ompl/geometric/planners/rrt/InformedRRTstar.h>
+#include <ompl/geometric/planners/prm/PRMstar.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/base/PlannerData.h>
 #include <fstream>
@@ -237,8 +240,9 @@ bool SpherePlanning::setStateValidityChecker() {
 }
 
 bool SpherePlanning::setPlanner() {
-    _planner = std::make_shared<ompl::geometric::RRTConnect>(_constrained_space_info);
-    _planner->setRange(0.05);
+    _planner = std::make_shared<ompl::geometric::InformedRRTstar>(_constrained_space_info);
+    _planner->as<ompl::geometric::InformedRRTstar>()->setRange(0.05);
+    // _planner->as<ompl::geometric::PRMstar>()->setMaxNearestNeighbors(5);
 
     if (_planner == nullptr) {
         OMPL_ERROR("Failed to construct planner!");
@@ -249,7 +253,6 @@ bool SpherePlanning::setPlanner() {
     std::stringstream ss;
     ss << std::endl;
     ss << "\tPlanner: " << _planner->getName() << std::endl;
-    ss << "\t\tRange: " << _planner->getRange();
     OMPL_DEBUG(ss.str().c_str());
     return true;
 }

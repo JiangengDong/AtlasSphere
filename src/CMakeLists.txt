@@ -14,6 +14,7 @@ add_executable(SpherePlanningExecutable
         main.cpp
         SpherePlanning.cpp
         RRTConnect.cpp
+        RRTstar.cpp
         AtlasStateSpace.cpp)
 target_link_libraries(SpherePlanningExecutable PRIVATE ${OMPL_LIBRARIES})
 set_target_properties(SpherePlanningExecutable PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")

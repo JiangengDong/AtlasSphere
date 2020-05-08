@@ -19,7 +19,7 @@
 #include "SphereValidityChecker.h"
 
 SpherePlanning::SpherePlanning() {
-    ompl::msg::setLogLevel(ompl::msg::LOG_INFO);
+    ompl::msg::setLogLevel(ompl::msg::LOG_ERROR);
     init = setAmbientStateSpace()
            && setConstraint()
            && setConstrainedStateSpace()
@@ -40,12 +40,13 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start, co
     }
 
     setStartGoal(start, goal);
-    auto status = _simple_setup->solve(10);
-    if (status == ompl::base::PlannerStatus::EXACT_SOLUTION) {
-        _simple_setup->getPlannerData(*_planner_data);
-        return true;
-    } else
-        return false;
+    ompl::base::PlannerStatus status = ompl::base::PlannerStatus::TIMEOUT;
+    while (status != ompl::base::PlannerStatus::EXACT_SOLUTION) {
+        status = _simple_setup->solve(1);
+    }
+    _simple_setup->solve(5);
+    _simple_setup->getPlannerData(*_planner_data);
+    return true;
 }
 
 bool SpherePlanning::clear() {
@@ -200,7 +201,7 @@ bool SpherePlanning::setConstrainedStateSpace() {
     _constrained_space->setEpsilon(0.001);
     _constrained_space->setAlpha(0.3);
     _constrained_space->setExploration(0.5);
-    _constrained_space->setMaxChartsPerExtension(500);
+    _constrained_space->setMaxChartsPerExtension(5000);
     _constrained_space->setSeparated(true);
     auto &&atlas = _constrained_space;
     _constrained_space->setBiasFunction([atlas](ompl::base::AtlasChart *c) -> double {
@@ -240,9 +241,8 @@ bool SpherePlanning::setStateValidityChecker() {
 }
 
 bool SpherePlanning::setPlanner() {
-    _planner = std::make_shared<ompl::geometric::InformedRRTstar>(_constrained_space_info);
-    _planner->as<ompl::geometric::InformedRRTstar>()->setRange(0.05);
-    // _planner->as<ompl::geometric::PRMstar>()->setMaxNearestNeighbors(5);
+    _planner = std::make_shared<ompl::geometric::RRTstar>(_constrained_space_info);
+    _planner->as<ompl::geometric::RRTstar>()->setRange(0.05);
 
     if (_planner == nullptr) {
         OMPL_ERROR("Failed to construct planner!");

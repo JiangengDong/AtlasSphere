@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
     ompl::msg::setLogLevel(ompl::msg::LOG_INFO);
     SpherePlanning spherePlanning;
     Eigen::Vector3d start, goal;
-
+    srand(1);
     do {
         while (true) {
             start.setRandom();

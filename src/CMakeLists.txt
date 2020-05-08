@@ -4,6 +4,7 @@ add_library(SpherePlanning MODULE
         python_plugin.cpp
         SpherePlanning.cpp
         RRTConnect.cpp
+        RRTstar.cpp
         AtlasStateSpace.cpp)
 target_link_libraries(SpherePlanning PRIVATE ${OMPL_LIBRARIES} pybind11::module)
 set_target_properties(SpherePlanning PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"

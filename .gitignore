@@ -6,3 +6,7 @@
 /data/
 *.cpython-*.so
 /bin/
+/logs/
+/models/
+/pytorch_sphere/
+__pycache__/

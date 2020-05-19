@@ -66,16 +66,23 @@ def train(args):
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        writer.add_scalar("loss", total_loss)
+        writer.add_scalar("loss", total_loss, epoch)
         if epoch % args.save_step == 0:
             enet_path = os.path.join(args.model_path, "enet%d.pkl" % epoch)
             torch.save(enet.state_dict(), enet_path)
             pnet_path = os.path.join(args.model_path, "pnet%d.pkl" % epoch)
             torch.save(pnet.state_dict(), pnet_path)
 
+    # save to torch script
+    enet_scripted = torch.jit.script(enet)
+    enet_scripted.save(os.path.join(args.model_path, "enet_script.pt"))
+    pnet_scripted = torch.jit.script(pnet)
+    pnet_scripted.save(os.path.join(args.model_path, "pnet_script.pt"))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('task', type=str, choices=("train", "test"), help='task to perform')
     parser.add_argument('--model_path', type=str, default='./models/', help='path for saving trained models')
     parser.add_argument('--save_step', type=int, default=10, help='step size for saving trained models')
 
@@ -90,4 +97,6 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--lr', type=float, default=0.0001)
     args = parser.parse_args()
-    train(args)
+
+    if args.task=="train":
+        train(args)

@@ -40,8 +40,6 @@
 #include <ompl/datastructures/NearestNeighbors.h>
 #include <ompl/geometric/planners/PlannerIncludes.h>
 #include "MPNetSampler.h"
-#include "TaskSpaceRegionChain.h"
-#include "Parameters.h"
 
 namespace ompl {
     namespace geometric {
@@ -49,7 +47,7 @@ namespace ompl {
         class MPNetPlanner : public base::Planner {
         public:
             /** \brief Constructor */
-            MPNetPlanner(const base::SpaceInformationPtr &si, const OpenRAVE::RobotBasePtr& robot, const std::vector<AtlasMPNet::TaskSpaceRegionChain::Ptr>& tsrchains, AtlasMPNet::MPNetParameter param);
+            MPNetPlanner(const base::SpaceInformationPtr &si);
 
             ~MPNetPlanner() override;
 

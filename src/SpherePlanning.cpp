@@ -6,6 +6,8 @@
 
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/spaces/constraint/AtlasStateSpace.h>
+#include <ompl/base/spaces/constraint/TangentBundleStateSpace.h>
+#include <ompl/base/spaces/constraint/ProjectedStateSpace.h>
 #include <ompl/base/ConstrainedSpaceInformation.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
@@ -17,9 +19,9 @@
 
 #include "SphereConstraint.h"
 #include "SphereValidityChecker.h"
+#include "MPNetPlanner.h"
 
 SpherePlanning::SpherePlanning() {
-    ompl::msg::setLogLevel(ompl::msg::LOG_ERROR);
     init = setAmbientStateSpace()
            && setConstraint()
            && setConstrainedStateSpace()
@@ -41,10 +43,7 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start, co
 
     setStartGoal(start, goal);
     ompl::base::PlannerStatus status = ompl::base::PlannerStatus::TIMEOUT;
-    while (status != ompl::base::PlannerStatus::EXACT_SOLUTION) {
-        status = _simple_setup->solve(1);
-    }
-    _simple_setup->solve(5);
+    status = _simple_setup->solve(5);
     _simple_setup->getPlannerData(*_planner_data);
     return true;
 }
@@ -59,8 +58,8 @@ bool SpherePlanning::clear() {
 bool SpherePlanning::printStat() const {
     std::stringstream ss;
     ss << std::endl;
-    ss << "\tNum of charts in atlas: " << _constrained_space->getChartCount() << std::endl;
-    ss << "\tFrontier charts percentage in atlas: " << _constrained_space->estimateFrontierPercent() << std::endl;
+    ss << "\tNum of charts in atlas: " << _constrained_space->as<ompl::base::AtlasStateSpace>()->getChartCount() << std::endl;
+    ss << "\tFrontier charts percentage in atlas: " << _constrained_space->as<ompl::base::AtlasStateSpace>()->estimateFrontierPercent() << std::endl;
     ss << "\tNodes in trees: " << _planner_data->numVertices() << std::endl;
     OMPL_DEBUG(ss.str().c_str());
     return true;
@@ -68,7 +67,7 @@ bool SpherePlanning::printStat() const {
 
 bool SpherePlanning::exportAtlas(const std::string &filename) const {
     std::ofstream file(filename + ".ply");
-    _constrained_space->printPLY(file);
+    _constrained_space->as<ompl::base::AtlasStateSpace>()->printPLY(file);
     file.close();
     OMPL_INFORM("Atlas has been written to file %s.ply. ", filename.c_str());
     return true;
@@ -192,21 +191,21 @@ bool SpherePlanning::setConstraint() {
 }
 
 bool SpherePlanning::setConstrainedStateSpace() {
-    _constrained_space = std::make_shared<ompl::base::AtlasStateSpace>(_space, _constraint);
+    _constrained_space = std::make_shared<ompl::base::ProjectedStateSpace>(_space, _constraint);
     _constrained_space_info = std::make_shared<ompl::base::ConstrainedSpaceInformation>(_constrained_space);
 
     _constrained_space->setDelta(0.05);
     _constrained_space->setLambda(2.0);
-    _constrained_space->setRho(0.2);
-    _constrained_space->setEpsilon(0.001);
-    _constrained_space->setAlpha(0.3);
-    _constrained_space->setExploration(0.5);
-    _constrained_space->setMaxChartsPerExtension(5000);
-    _constrained_space->setSeparated(true);
-    auto &&atlas = _constrained_space;
-    _constrained_space->setBiasFunction([atlas](ompl::base::AtlasChart *c) -> double {
-        return (atlas->getChartCount() - c->getNeighborCount()) + 1;
-    });
+    // _constrained_space->setRho(0.2);
+    // _constrained_space->setEpsilon(0.001);
+    // _constrained_space->setAlpha(0.3);
+    // _constrained_space->setExploration(0.5);
+    // _constrained_space->setMaxChartsPerExtension(5000);
+    // _constrained_space->setSeparated(true);
+    // auto &&atlas = _constrained_space;
+    // _constrained_space->setBiasFunction([atlas](ompl::base::AtlasChart *c) -> double {
+    //     return (atlas->getChartCount() - c->getNeighborCount()) + 1;
+    // });
 
     if (_constrained_space == nullptr || _constrained_space_info == nullptr) {
         OMPL_ERROR("Failed to construct constrained state space!");
@@ -214,19 +213,6 @@ bool SpherePlanning::setConstrainedStateSpace() {
     }
 
     OMPL_INFORM("Constructed constrained state space successfully.");
-    std::stringstream ss;
-    ss << std::endl;
-    ss << "\tAmbient space dimension: " << _constrained_space->getAmbientDimension() << std::endl;
-    ss << "\tManifold dimension: " << _constrained_space->getManifoldDimension() << std::endl;
-    ss << "\tParameters of atlas state space: " << std::endl;
-    ss << "\t\tDelta (Step-size for discrete geodesic on manifold): " << _constrained_space->getDelta() << std::endl;
-    ss << "\t\tLambda (Maximum `wandering` allowed during traversal): " << _constrained_space->getLambda() << std::endl;
-    ss << "\t\tExploration (tunes balance of refinement and exploration in atlas sampling): " << _constrained_space->getExploration() << std::endl;
-    ss << "\t\tRho (max radius for an atlas chart): " << _constrained_space->getRho() << std::endl;
-    ss << "\t\tEpsilon (max distance from manifold to chart): " << _constrained_space->getEpsilon() << std::endl;
-    ss << "\t\tAlpha (max angle between chart and manifold): " << _constrained_space->getAlpha() << std::endl;
-    ss << "\t\tMax chart generated during a traversal: " << _constrained_space->getMaxChartsPerExtension();
-    OMPL_DEBUG(ss.str().c_str());
     return true;
 }
 
@@ -241,8 +227,9 @@ bool SpherePlanning::setStateValidityChecker() {
 }
 
 bool SpherePlanning::setPlanner() {
-    _planner = std::make_shared<ompl::geometric::RRTstar>(_constrained_space_info);
-    _planner->as<ompl::geometric::RRTstar>()->setRange(0.05);
+    _planner = std::make_shared<ompl::geometric::MPNetPlanner>(_constrained_space_info);
+    // _planner = std::make_shared<ompl::geometric::RRTConnect>(_constrained_space_info);
+    // _planner->as<ompl::geometric::RRTConnect>()->setRange(0.05);
 
     if (_planner == nullptr) {
         OMPL_ERROR("Failed to construct planner!");
@@ -278,8 +265,8 @@ bool SpherePlanning::setStartGoal(const Eigen::Ref<const Eigen::VectorXd> &start
     sstart->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(start);
     sgoal->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(goal);
 
-    _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sstart.get());
-    _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sgoal.get());
+    // _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sstart.get());
+    // _constrained_space->as<ompl::base::AtlasStateSpace>()->anchorChart(sgoal.get());
 
     _simple_setup->setStartAndGoalStates(sstart, sgoal);
     return true;

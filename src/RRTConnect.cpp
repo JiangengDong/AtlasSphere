@@ -123,7 +123,7 @@ ompl::geometric::RRTConnect::GrowState ompl::geometric::RRTConnect::growTree(Tre
 
     // this is designed for AtlasStateSpace only.
     std::vector<ompl::base::State *> stateList;
-    bool reach = si_->getStateSpace()->as<ompl::base::AtlasStateSpace>()->discreteGeodesic(nmotion->state, rmotion->state, false, &stateList);
+    bool reach = si_->getStateSpace()->as<ompl::base::ConstrainedStateSpace>()->discreteGeodesic(nmotion->state, rmotion->state, false, &stateList);
 
     if(stateList.empty()    // did not traverse at all
         || si_->equalStates(nmotion->state, stateList.back())) {    // did not make a progress

@@ -19,6 +19,16 @@ public:
     void jacobian(const Eigen::Ref<const Eigen::VectorXd> &x, Eigen::Ref<Eigen::MatrixXd> out) const override {
         out = 2*x.transpose();
     }
+
+    // bool project(Eigen::Ref<Eigen::VectorXd> x) const override {
+    //     if(x.squaredNorm() < 1e-10){
+    //         return false;
+    //     }
+    //     else {
+    //         x.normalize();
+    //         return true;
+    //     }
+    // }
 };
 
 

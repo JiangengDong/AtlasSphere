@@ -1,32 +1,46 @@
-#include <Eigen/Dense>
+#include "Parameter.h"
 #include "SpherePlanning.h"
-#include <iostream>
+#include <Eigen/Dense>
 #include <fstream>
+#include <iostream>
+#include <string>
 
-int main(int argc, char **argv)
-{
-    ompl::msg::setLogLevel(ompl::msg::LOG_DEBUG);
-    SpherePlanning spherePlanning;
-    Eigen::Vector3d start, goal;
-    srand(17);
+int main(int argc, char **argv) {
+    // get config
+    std::string config_path = "./data/config/compnet-atlas-config.txt";
+    if (argc > 1) {
+        config_path = argv[1];
+    }
+    std::ifstream param_file(config_path);
+    if(!param_file.good()){
+        std::cerr << "Cannot find config file. " << std::endl;
+        return 0;
+    }
+    Parameter param(param_file);
+    param_file.close();
 
-    std::ofstream output_csv("./data/stat_CoMPNet.csv");
-    output_csv << "no, time" << std::endl;
+    srand(param.seed);
+    ompl::msg::setLogLevel(param.log_level);
 
-    for (unsigned int i = 0; i < 1000; i++)
-    {
+    std::ofstream output_csv;
+    if (param.csv_path != "") {
+        output_csv.open(param.csv_path);
+        output_csv << "no, time, cost" << std::endl;
+    }
+
+    // main sampling part
+    for (unsigned int i = 0; i < param.num_iter; i++) {
         std::cout << "Sample " << i << std::endl;
-        do
-        {
-            while (true)
-            {
+        SpherePlanning spherePlanning(param);
+        Eigen::Vector3d start, goal;
+        do {
+            while (true) {
                 start.setRandom();
                 start.normalize();
                 if (spherePlanning.isValid(start))
                     break;
             }
-            while (true)
-            {
+            while (true) {
                 goal.setRandom();
                 goal.normalize();
                 if (spherePlanning.isValid(goal))
@@ -35,14 +49,25 @@ int main(int argc, char **argv)
         } while ((start - goal).norm() < 1.9);
 
         bool solved = spherePlanning.planOnce(start, goal);
-        if (solved)
-        {
-            output_csv << i << ", " << spherePlanning.getTime() << std::endl;
+        double planning_time = solved ? spherePlanning.getTime() : INFINITY;
+        if (output_csv.is_open()) {
+            output_csv << i << ", " << planning_time << ", " << spherePlanning.getPathLength() << std::endl;
+            std::cout << "Result save to csv. " << std::endl;
         }
-        else {
-            output_csv << i << ", " << "inf" << std::endl;
+
+        if (param.path_path != ""){
+            spherePlanning.exportPath(param.path_path+std::to_string(i));
         }
-        spherePlanning.clear();
+        if (param.smooth_path != "") {
+            spherePlanning.exportSmoothPath(param.smooth_path+std::to_string(i));
+        }
+        if (param.graph_path != "") {
+            spherePlanning.exportTree(param.graph_path+std::to_string(i));
+        }
+        if(param.atlas_path != "") {
+            spherePlanning.exportAtlas(param.atlas_path+std::to_string(i));
+        }
     }
-    output_csv.close();
+    if (output_csv.is_open())
+        output_csv.close();
 }

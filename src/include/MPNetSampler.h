@@ -15,7 +15,7 @@ namespace AtlasMPNet {
     class MPNetSampler : public ompl::base::StateSampler {
     public:
         typedef std::shared_ptr<MPNetSampler> Ptr;
-        MPNetSampler(const ompl::base::StateSpace *space);
+        MPNetSampler(const ompl::base::StateSpace *space, std::string pnet_path, std::string voxel_path);
 
         bool sample(const ompl::base::State *start, const ompl::base::State *goal, ompl::base::State *sample);
 

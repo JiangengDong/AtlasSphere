@@ -17,28 +17,30 @@
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/base/PlannerData.h>
 
+#include "Parameter.h"
+
 class SpherePlanning {
 public:
     typedef std::shared_ptr<SpherePlanning> Ptr;
-    SpherePlanning();
+    SpherePlanning(Parameter param);
 
     bool planOnce(const Eigen::Ref<const Eigen::VectorXd> &start, const Eigen::Ref<const Eigen::VectorXd> &goal);
 
     bool clear();
 
-    bool printStat() const;
-
     bool exportAtlas(const std::string & filename) const;
 
-    bool exportTree(const std::string & filename, int filetype = 0) const;
+    bool exportTree(const std::string & filename) const;
 
     bool exportPath(const std::string &filename, std::ios_base::openmode mode=std::ios_base::out|std::ios_base::trunc) const;
 
-    bool exportAll() const;
-
     Eigen::MatrixXd getPath();
 
-    double getTime() {return _simple_setup->getLastPlanComputationTime();}
+    double getPathLength();
+
+    double getTime();
+
+    bool exportSmoothPath(std::string filename);
 
     bool isValid(const Eigen::Ref<const Eigen::VectorXd> &state) const;
 
@@ -52,6 +54,7 @@ private:
     ompl::base::StateValidityCheckerPtr _state_validity_checker;
     ompl::base::PlannerPtr _planner;
     ompl::geometric::SimpleSetupPtr _simple_setup;
+    Parameter _param;
 
     // temporary variable
     ompl::base::PlannerDataPtr _planner_data;

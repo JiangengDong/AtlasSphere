@@ -47,7 +47,7 @@ namespace ompl {
         class MPNetPlanner : public base::Planner {
         public:
             /** \brief Constructor */
-            MPNetPlanner(const base::SpaceInformationPtr &si);
+            MPNetPlanner(const base::SpaceInformationPtr &si, std::string pnet_path, std::string voxel_path);
 
             ~MPNetPlanner() override;
 

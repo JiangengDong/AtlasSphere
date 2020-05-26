@@ -42,7 +42,7 @@
 #include <ompl/tools/config/SelfConfig.h>
 #include <ompl/util/String.h>
 
-ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si)
+ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si, std::string pnet_path, std::string voxel_path)
     : base::Planner(si, "MPNetPlanner") {
     specs_.recognizedGoal = base::GOAL_SAMPLEABLE_REGION;
     specs_.directed = true;
@@ -51,7 +51,7 @@ ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si)
 
     connectionPoint_ = std::make_pair<base::State *, base::State *>(nullptr, nullptr);
     distanceBetweenTrees_ = std::numeric_limits<double>::infinity();
-    sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get());
+    sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
 }
 
 ompl::geometric::MPNetPlanner::~MPNetPlanner() {
@@ -172,8 +172,8 @@ ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::Plann
     while (!ptc) {
         TreeData &tree = startTree ? tStart_ : tGoal_;
         TreeData &otherTree = startTree ? tGoal_ : tStart_;
-        Motion* &motionA = startTree ? start_motion : goal_motion;
-        Motion* &motionB = startTree ? goal_motion : start_motion;
+        Motion *&motionA = startTree ? start_motion : goal_motion;
+        Motion *&motionB = startTree ? goal_motion : start_motion;
         tgi.start = startTree;
         startTree = !startTree;
 

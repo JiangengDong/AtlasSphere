@@ -7,9 +7,11 @@ The C++ part uses OMPL to do path planning. The constraint and state validity ch
 
 The Python part is used to store the sampled paths to a HDF5 file. Each path is a separate dataset with name "path\[num\]". There is also a dataset called "collision" that contains the collided configs.
 
-## Version of libraries
+## Dependencies
 
 - Python: 3.5/3.7
 - C++: 11
 - OMPL: 1.4.2
 - Boost: 1.58
+- HDF5: 1.8.16
+- YAML-CPP

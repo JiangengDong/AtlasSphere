@@ -10,3 +10,5 @@
 /models/
 /pytorch_sphere/
 __pycache__/
+*.blend1
+/.devcontainer/

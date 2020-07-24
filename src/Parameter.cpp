@@ -1,70 +1,34 @@
 #include "Parameter.h"
 
 Parameter::Parameter(int argc, char **argv) {
-    auto pwd = boost::filesystem::current_path();
-
-    po::positional_options_description p;
-    p.add("task", 1);
-
+    // define options
     po::options_description desc;
-    desc.add_options()                                                                                   //
-        ("num_iter", po::value<unsigned int>(&this->num_iter)->default_value(1), "num of iterations")    //
-        ("seed", po::value<unsigned int>(&this->seed)->default_value(time(NULL)), "random seed")         //
-        ("log_level", po::value<unsigned int>()->default_value(0)->notifier([this](unsigned int level) { //
-            this->log_level = static_cast<ompl::msg::LogLevel>(level);
-        }))                                                                                                                                                                  //
-        ("space", po::value<std::string>()->default_value("proj")->notifier([this](std::string space_str) { this->set_space(space_str); }), "type of constrained space")     //
-        ("planner", po::value<std::string>()->default_value("rrtconnect")->notifier([this](std::string planner_str) { this->set_planner(planner_str); }), "type of planner") //
-        ("output.csv_path", po::value<std::string>()->notifier([this, &pwd](std::string value) {                                                                             //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->csv_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                       //
-        ("output.path_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->path_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                        //
-        ("output.graph_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->graph_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                        //
-        ("output.atlas_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->atlas_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                         //
-        ("output.smooth_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->smooth_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                      //
-        ("input.pnet_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->pnet_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        }))                                                                                       //
-        ("input.voxel_path", po::value<std::string>()->notifier([this, &pwd](std::string value) { //
-            if (value == "") return;
-            auto temp_path = boost::filesystem::path(value);
-            this->voxel_path = temp_path.is_absolute() ? temp_path.string() : (pwd / temp_path).normalize().string();
-        })) //
+    desc.add_options()                                                                                                      //
+        ("num_iter", po::value<unsigned int>()->default_value(1))                                                           //
+        ("seed", po::value<unsigned int>()->default_value(time(NULL)))                                                      //
+        ("log_level", po::value<unsigned int>()->default_value(0))                                                          //
+        ("space", po::value<std::string>()->default_value("proj"), "type of constrained space: proj, atlas, tb")            //
+        ("planner", po::value<std::string>()->default_value("rrtconnect"), "type of planner: rrtconnect, compnet, rrtstar") //
         ;
-
     po::options_description cmdline;
-    cmdline.add_options()                                                      //
-        ("help", "produce help message")                                       //
-        ("config_file", po::value<std::string>(), "type of constrained space") //
+    cmdline.add_options()                                                                                             //
+        ("help", "produce help message")                                                                              //
+        ("config_file", po::value<std::string>())                                                                     //
+        ("task", po::value<std::string>()->required(), "task to do: generate_path, generate_smooth, generate_visual") //
+        ("output_dir", po::value<std::string>()->default_value("./"))                                                 //
+        ("input_dir", po::value<std::string>()->default_value("./"))                                                  //
         ;
     cmdline.add(desc);
 
+    // read conmand line
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(cmdline).positional(p).run(), vm);
+    po::store(po::parse_command_line(argc, argv, cmdline), vm);
     if (vm.count("help")) {
         std::cout << cmdline << std::endl;
         exit(0);
     }
+
+    // read config file
     if (vm.count("config_file")) {
         auto filename = vm["config_file"].as<std::string>();
         if (!boost::filesystem::is_regular_file(filename))
@@ -74,21 +38,32 @@ Parameter::Parameter(int argc, char **argv) {
             OMPL_ERROR("Unable to open the config file.");
         po::store(po::parse_config_file(config_stream, desc), vm);
         config_stream.close();
-        auto config_dir = boost::filesystem::path(filename).parent_path();
-        pwd = config_dir.is_absolute()?config_dir.string():(pwd/config_dir).normalize().string();
     }
     po::notify(vm);
+
+    // store values into the instance
+    this->set_task(vm["task"].as<std::string>());
+    this->num_iter = vm["num_iter"].as<unsigned int>();
+    this->seed = vm["seed"].as<unsigned int>();
+    this->log_level = static_cast<ompl::msg::LogLevel>(vm["log_level"].as<unsigned int>());
+    this->set_space(vm["space"].as<std::string>());
+    this->set_planner(vm["planner"].as<std::string>());
+    boost::filesystem::path output_dir(vm["output_dir"].as<std::string>()),
+        input_dir(vm["input_dir"].as<std::string>()),
+        pwd = boost::filesystem::current_path();
+    this->output_dir = (output_dir.is_absolute() ? output_dir : pwd / output_dir).normalize();
+    this->input_dir = (input_dir.is_absolute() ? input_dir : pwd / input_dir).normalize();
 }
 
 std::ostream &operator<<(std::ostream &o, Parameter::SpaceType s) {
     switch (s) {
-    case Parameter::proj:
+    case Parameter::PROJ:
         o << "proj";
         break;
-    case Parameter::atlas:
+    case Parameter::ATLAS:
         o << "atlas";
         break;
-    case Parameter::tb:
+    case Parameter::TB:
         o << "tb";
         break;
     default:
@@ -119,19 +94,8 @@ std::ostream &operator<<(std::ostream &o, const Parameter &p) {
       << "seed=" << p.seed << std::endl
       << "log_level=" << p.log_level << std::endl
       << "space=" << p.space << std::endl
-      << "planner=" << p.planner << std::endl;
-
-    o << std::endl
-      << "[output]" << std::endl
-      << "csv_path=" << p.csv_path << std::endl
-      << "path_path=" << p.path_path << std::endl
-      << "graph_path=" << p.graph_path << std::endl
-      << "atlas_path=" << p.atlas_path << std::endl
-      << "smooth_path=" << p.smooth_path << std::endl;
-
-    o << std::endl
-      << "[input]" << std::endl
-      << "pnet_path=" << p.pnet_path << std::endl
-      << "voxel_path=" << p.voxel_path;
+      << "planner=" << p.planner << std::endl
+      << "input_dir=" << p.input_dir.string() << std::endl
+      << "output_dir=" << p.output_dir.string();
     return o;
 }

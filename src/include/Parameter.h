@@ -22,11 +22,11 @@ public:
     bool set_space(std::string space) {
         boost::algorithm::to_lower(space);
         if (space == "proj" or space == "projection")
-            this->space = proj;
+            this->space = PROJ;
         else if (space == "atlas")
-            this->space = atlas;
+            this->space = ATLAS;
         else if (space == "tb" or space == "tangent-bundle" or space == "tangent_bundle")
-            this->space = tb;
+            this->space = TB;
         else
             OMPL_ERROR("Unsupported space type.");
         return true;
@@ -45,22 +45,31 @@ public:
         return true;
     }
 
-    unsigned int num_iter = 1;
-    enum SpaceType { proj = 0,
-                     atlas,
-                     tb } space = proj;
+    bool set_task(std::string task) {
+        boost::algorithm::to_lower(task);
+        if(task == "generate_path")
+            this->task = GENERATE_PATH;
+        else if (task == "generate_smooth")
+            this->task = GENERATE_SMOOTH;
+        else if (task == "generate_visual")
+            this->task = GENERATE_VISUAL;
+        else
+            OMPL_ERROR("Unsupported task.");
+        return true;
+    }
+
+    unsigned int num_iter;
+    enum SpaceType { PROJ = 0,
+                     ATLAS,
+                     TB } space;
     enum PlannerType { RRTConnect = 0,
                        CoMPNet,
-                       RRTstar } planner = RRTConnect;
-    unsigned int seed = 0;
-    ompl::msg::LogLevel log_level = ompl::msg::LOG_DEBUG;
-    std::string csv_path = "";
-    std::string path_path = "";
-    std::string graph_path = "";
-    std::string atlas_path = "";
-    std::string pnet_path = "";
-    std::string voxel_path = "";
-    std::string smooth_path = "";
+                       RRTstar } planner;
+    unsigned int seed;
+    ompl::msg::LogLevel log_level;
+    boost::filesystem::path input_dir;
+    boost::filesystem::path output_dir;
+    enum TaskType { GENERATE_PATH = 0, GENERATE_SMOOTH, GENERATE_VISUAL} task;
 
     friend std::ostream &operator<<(std::ostream &o, SpaceType s);
 

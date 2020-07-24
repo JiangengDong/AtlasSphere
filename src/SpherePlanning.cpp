@@ -54,7 +54,7 @@ bool SpherePlanning::clear() {
 }
 
 bool SpherePlanning::exportAtlas(const std::string &filename) const {
-    if (_param.space != Parameter::proj) {
+    if (_param.space != Parameter::PROJ) {
         std::ofstream file(filename);
         _constrained_space->as<ompl::base::AtlasStateSpace>()->printPLY(file);
         file.close();
@@ -216,17 +216,17 @@ bool SpherePlanning::setConstraint() {
 
 bool SpherePlanning::setConstrainedStateSpace() {
     switch (_param.space) {
-    case Parameter::proj: {
+    case Parameter::PROJ: {
         _constrained_space = std::make_shared<ompl::base::ProjectedStateSpace>(_space, _constraint);
         _constrained_space_info = std::make_shared<ompl::base::ConstrainedSpaceInformation>(_constrained_space);
         break;
     }
-    case Parameter::atlas: {
+    case Parameter::ATLAS: {
         _constrained_space = std::make_shared<ompl::base::AtlasStateSpace>(_space, _constraint);
         _constrained_space_info = std::make_shared<ompl::base::ConstrainedSpaceInformation>(_constrained_space);
         break;
     }
-    case Parameter::tb: {
+    case Parameter::TB: {
         _constrained_space = std::make_shared<ompl::base::TangentBundleStateSpace>(_space, _constraint);
         _constrained_space_info = std::make_shared<ompl::base::TangentBundleSpaceInformation>(_constrained_space);
         break;
@@ -236,7 +236,7 @@ bool SpherePlanning::setConstrainedStateSpace() {
     _constrained_space->setDelta(0.05);
     _constrained_space->setLambda(2.0);
 
-    if (_param.space != Parameter::proj) { // Parameters for Atlas and Tangent Bundle state space
+    if (_param.space != Parameter::PROJ) { // Parameters for Atlas and Tangent Bundle state space
         auto atlas_space = _constrained_space->as<ompl::base::AtlasStateSpace>();
         atlas_space->setRho(0.3);
         atlas_space->setEpsilon(0.001);
@@ -262,7 +262,7 @@ bool SpherePlanning::setConstrainedStateSpace() {
     ss << "\tManifold dimension: " << _constrained_space->getManifoldDimension() << std::endl;
     ss << "\tDelta (Step-size for discrete geodesic on manifold): " << _constrained_space->getDelta() << std::endl;
     ss << "\tLambda (Maximum `wandering` allowed during traversal): " << _constrained_space->getLambda() << std::endl;
-    if (_param.space != Parameter::proj) {
+    if (_param.space != Parameter::PROJ) {
         auto atlas_space = _constrained_space->as<ompl::base::AtlasStateSpace>();
         ss << "\tParameters of atlas state space: " << std::endl;
         ss << "\t\tExploration (tunes balance of refinement and exploration in atlas sampling): " << atlas_space->getExploration() << std::endl;
@@ -293,7 +293,8 @@ bool SpherePlanning::setPlanner() {
         break;
     }
     case Parameter::CoMPNet: {
-        _planner = std::make_shared<ompl::geometric::MPNetPlanner>(_constrained_space_info, _param.pnet_path, _param.voxel_path);
+        std::string pnet_path=(_param.input_dir/"pnet.pt").string(), voxel_path=(_param.input_dir/"voxel.csv").string();
+        _planner = std::make_shared<ompl::geometric::MPNetPlanner>(_constrained_space_info, pnet_path, voxel_path);
         break;
     }
     case Parameter::RRTstar: {
@@ -337,7 +338,7 @@ bool SpherePlanning::setStartGoal(const Eigen::Ref<const Eigen::VectorXd> &start
     sstart->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(start);
     sgoal->as<ompl::base::ConstrainedStateSpace::StateType>()->copy(goal);
 
-    if (_param.space != Parameter::proj) {
+    if (_param.space != Parameter::PROJ) {
         _constrained_space->as<ompl::base::AtlasStateSpace>()->newChart(sstart->as<ompl::base::AtlasStateSpace::StateType>());
         _constrained_space->as<ompl::base::AtlasStateSpace>()->newChart(sgoal->as<ompl::base::AtlasStateSpace::StateType>());
     }

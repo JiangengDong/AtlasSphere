@@ -8,4 +8,5 @@
 int main(int argc, char **argv) {
     // get config
     Parameter param(argc, argv);
+    std::cout << param << std::endl;
 }

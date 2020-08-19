@@ -17,6 +17,8 @@
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
+#include <ompl/geometric/planners/bitstar/BITstar.h>
+#include "FMT.h"
 
 #include "MPNetPlanner.h"
 #include "Parameter.h"
@@ -300,6 +302,14 @@ bool SpherePlanning::setPlanner() {
     case Parameter::RRTstar: {
         _planner = std::make_shared<ompl::geometric::RRTstar>(_constrained_space_info);
         _planner->as<ompl::geometric::RRTstar>()->setRange(0.05);
+        break;
+    }
+    case Parameter::BITstar: {
+        _planner = std::make_shared<ompl::geometric::BITstar>(_constrained_space_info);
+        break;
+    }
+    case Parameter::FMT: {
+        _planner = std::make_shared<ompl::geometric::FMT>(_constrained_space_info);
         break;
     }
     }

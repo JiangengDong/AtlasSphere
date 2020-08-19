@@ -5,7 +5,11 @@ add_executable(SpherePlanningExecutable
         RRTstar.cpp
         MPNetPlanner.cpp
         MPNetSampler.cpp
-        Parameter.cpp)
+        Parameter.cpp
+        BITstar.cpp 
+        ImplicitGraph.cpp
+        FMT.cpp 
+        )
 target_include_directories(SpherePlanningExecutable
     PRIVATE
         ./include)

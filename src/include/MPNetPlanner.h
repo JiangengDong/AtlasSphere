@@ -52,6 +52,7 @@ namespace ompl {
             ~MPNetPlanner() override;
 
             void getPlannerData(base::PlannerData &data) const override;
+            void exportSamples(std::string filename) const;
 
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;
 
@@ -84,7 +85,9 @@ namespace ompl {
 
             void setup() override;
 
-        protected:
+            bool use_mpnet=true;
+
+        // protected:
             /** \brief Representation of a motion */
             class Motion {
             public:
@@ -129,10 +132,12 @@ namespace ompl {
             }
 
             /** \brief Grow a tree towards a random state */
-            ompl::geometric::MPNetPlanner::GrowState growTree(TreeData &tree, TreeGrowingInfo &tgi, Motion *rmotion);
+            GrowState growTree(TreeData &tree, TreeGrowingInfo &tgi, Motion *rmotion);
+            Motion* nearest(const TreeData &tree, const Motion* center);
 
             /** \brief State sampler */
-            AtlasMPNet::MPNetSampler::Ptr sampler_;
+            AtlasMPNet::MPNetSampler::Ptr mpnet_sampler_;
+            ompl::base::StateSamplerPtr simple_sampler_;
 
             /** \brief The start tree */
             TreeData tStart_;
@@ -154,6 +159,8 @@ namespace ompl {
 
             /** \brief Distance between the nearest pair of start tree and goal tree nodes. */
             double distanceBetweenTrees_;
+
+            std::vector<std::vector<double>> samples_memory_;
         };
     }
 }

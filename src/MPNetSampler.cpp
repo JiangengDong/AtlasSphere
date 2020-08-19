@@ -43,6 +43,40 @@ bool AtlasMPNet::MPNetSampler::sample(const ompl::base::State *start, const ompl
     return true;
 }
 
+bool AtlasMPNet::MPNetSampler::sampleBatch(const std::vector<const ompl::base::State *> &starts, const std::vector<const ompl::base::State *> &goals, std::vector<ompl::base::State *> &samples) {
+    std::vector<float> starts_vec, goals_vec;
+    long n = starts.size();
+    for (const auto & start: starts) {
+        auto &start_raw = *start->as<ompl::base::ConstrainedStateSpace::StateType>();
+        starts_vec.emplace_back(start_raw[0]);
+        starts_vec.emplace_back(start_raw[1]);
+        starts_vec.emplace_back(start_raw[2]);
+    }
+    for (const auto & goal: goals) {
+        auto &goal_raw = *goal->as<ompl::base::ConstrainedStateSpace::StateType>();
+        goals_vec.emplace_back(goal_raw[0]);
+        goals_vec.emplace_back(goal_raw[1]);
+        goals_vec.emplace_back(goal_raw[2]);
+    }
+
+    auto starts_tensor = torch::from_blob(starts_vec.data(), {n, dim_}).clone();
+    auto goals_tensor = torch::from_blob(goals_vec.data(), {n, dim_}).clone();
+    auto voxels_tensor = voxel_.repeat_interleave(n, 0);
+    auto pnet_input = torch::cat({voxels_tensor, starts_tensor, goals_tensor}, 1).to(at::kCUDA);
+    auto pnet_output = pnet_.forward({pnet_input}).toTensor().to(at::kCPU);
+    auto samples_data = pnet_output.accessor<float, 2>();
+    for (long i=0; i<n; i++) {
+        auto &sample_raw = *samples[i]->as<ompl::base::ConstrainedStateSpace::StateType>();
+        sample_raw[0] = samples_data[i][0];
+        sample_raw[1] = samples_data[i][1];
+        sample_raw[2] = samples_data[i][2];
+        auto norm = sample_raw[0]*sample_raw[0]+sample_raw[1]*sample_raw[1]+sample_raw[2]*sample_raw[2];
+        sample_raw[0]/=norm;
+        sample_raw[1]/=norm;
+        sample_raw[2]/=norm;
+    }
+}
+
 std::vector<double> AtlasMPNet::MPNetSampler::toVector(const torch::Tensor &tensor) {
     auto data = tensor.accessor<float, 2>()[0];
     std::vector<double> dest(dim_);

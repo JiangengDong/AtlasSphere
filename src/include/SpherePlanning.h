@@ -46,7 +46,7 @@ public:
 
     bool init;
 
-private:
+// private:
     std::shared_ptr<ompl::base::RealVectorStateSpace> _space;
     ompl::base::ConstraintPtr _constraint;
     ompl::base::ConstrainedStateSpacePtr _constrained_space;

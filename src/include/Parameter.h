@@ -18,6 +18,7 @@ namespace po = boost::program_options;
 class Parameter {
 public:
     Parameter(int argc, char **argv);
+    Parameter() = default;
 
     bool set_space(std::string space) {
         boost::algorithm::to_lower(space);
@@ -64,7 +65,9 @@ public:
                      TB } space;
     enum PlannerType { RRTConnect = 0,
                        CoMPNet,
-                       RRTstar } planner;
+                       RRTstar, 
+                       BITstar, 
+                       FMT } planner;
     unsigned int seed;
     ompl::msg::LogLevel log_level;
     boost::filesystem::path input_dir;

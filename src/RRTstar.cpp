@@ -49,6 +49,7 @@
 #include "ompl/base/spaces/constraint/AtlasStateSpace.h"
 #include "ompl/tools/config/SelfConfig.h"
 #include "ompl/util/GeometricEquations.h"
+#include "MPNetSampler.h"
 
 ompl::geometric::RRTstar::RRTstar(const base::SpaceInformationPtr &si)
   : base::Planner(si, "RRTstar")
@@ -169,6 +170,12 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
     base::Goal *goal = pdef_->getGoal().get();
     auto *goal_s = dynamic_cast<base::GoalSampleableRegion *>(goal);
 
+    auto mpnet_sampler = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
+    ompl::base::State *sA, *sB;
+    sA = si_->allocState();
+    sB = si_->allocState();
+    goal_s->sampleGoal(sB);
+
     bool symCost = opt_->isSymmetric();
 
     // Check if there are more starts
@@ -244,6 +251,8 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
 
     // our functor for sorting nearest neighbors
     CostIndexCompare compareFn(costs, *opt_);
+    std::vector<Motion*> data;
+    nn_->list(data);
 
     while (ptc == false)
     {
@@ -257,9 +266,14 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
             goal_s->sampleGoal(rstate);
         else
         {
-            // Attempt to generate a sample, if we fail (e.g., too many rejection attempts), skip the remainder of this
-            // loop and return to try again
-            if (!sampleUniform(rstate))
+            // // Attempt to generate a sample, if we fail (e.g., too many rejection attempts), skip the remainder of this loop and return to try again
+            // if (!sampleUniform(rstate))
+            //     continue;
+
+            // mpnet sampler
+            auto index_existing = rand() % data.size();
+            mpnet_sampler->sample(data[index_existing]->state, sB, rstate);
+            if (!si_->isValid(rstate))
                 continue;
         }
 
@@ -396,6 +410,7 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
                 if (opt_->isCostBetterThan(solutionHeuristic(motion), bestCost_))
                 {
                     nn_->add(motion);
+                    data.emplace_back(motion);
                     motion->parent->children.push_back(motion);
                 }
                 else  // If the new motion does not improve the best cost it is ignored.
@@ -409,6 +424,7 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
             {
                 // add motion to the tree
                 nn_->add(motion);
+                data.emplace_back(motion);
                 motion->parent->children.push_back(motion);
             }
 

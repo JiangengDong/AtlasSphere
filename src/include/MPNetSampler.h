@@ -19,6 +19,8 @@ namespace AtlasMPNet {
 
         bool sample(const ompl::base::State *start, const ompl::base::State *goal, ompl::base::State *sample);
 
+        bool sampleBatch(const std::vector<const ompl::base::State *> &starts, const std::vector<const ompl::base::State *> &goals, std::vector<ompl::base::State *> &samples);
+
         void sampleUniform(ompl::base::State *state) override {
         }
 

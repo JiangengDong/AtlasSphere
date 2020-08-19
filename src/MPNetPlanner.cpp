@@ -51,7 +51,8 @@ ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si,
 
     connectionPoint_ = std::make_pair<base::State *, base::State *>(nullptr, nullptr);
     distanceBetweenTrees_ = std::numeric_limits<double>::infinity();
-    sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
+    mpnet_sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
+    simple_sampler_ = si_->allocStateSampler();
 }
 
 ompl::geometric::MPNetPlanner::~MPNetPlanner() {
@@ -130,6 +131,24 @@ ompl::geometric::MPNetPlanner::GrowState ompl::geometric::MPNetPlanner::growTree
     return reach ? REACHED : ADVANCED;
 }
 
+ompl::geometric::MPNetPlanner::Motion* ompl::geometric::MPNetPlanner::nearest(const TreeData &tree, const Motion* center) {
+    std::vector<Motion *> motions;
+    tree->list(motions);
+    
+    double min_dist = INFINITY;
+    Motion* best;
+    double dist = 0.0;
+
+    for(const auto& motion:motions) {
+        dist = distanceFunction(motion, center);
+        if (dist < min_dist) {
+            best = motion;
+            dist = min_dist;
+        }
+    }
+    return best;
+}   
+
 ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::PlannerTerminationCondition &ptc) {
     checkValidity();
 
@@ -168,6 +187,7 @@ ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::Plann
     base::State *rstate = rmotion->state;
     bool startTree = true;
     bool solved = false;
+    srand(0);
 
     while (!ptc) {
         TreeData &tree = startTree ? tStart_ : tGoal_;
@@ -193,7 +213,13 @@ ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::Plann
         }
 
         /* sample random state */
-        sampler_->sample(motionA->state, motionB->state, rstate);
+        if(use_mpnet)
+            mpnet_sampler_->sample(motionA->state, motionB->state, rstate);
+        else
+            simple_sampler_->sampleUniform(rstate);
+        std::vector<double> temp_vec;
+        si_->getStateSpace()->copyToReals(temp_vec, rstate);
+        samples_memory_.emplace_back(temp_vec);
         GrowState gs = growTree(tree, tgi, rmotion);
 
         if (gs != TRAPPED) {
@@ -321,4 +347,30 @@ void ompl::geometric::MPNetPlanner::getPlannerData(base::PlannerData &data) cons
 
     // Add some info.
     data.properties["approx goal distance REAL"] = ompl::toString(distanceBetweenTrees_);
+}
+
+void ompl::geometric::MPNetPlanner::exportSamples(std::string filename) const {
+    std::ofstream out(filename);
+    std::stringstream v;
+    std::size_t vcount = 0;
+    for (const auto& sample: samples_memory_) {
+        for (const auto& val: sample) {
+            v << val << " ";
+        }
+        v << "\n";
+        vcount ++ ;
+    }
+
+    out << "ply\n";
+    out << "format ascii 1.0\n";
+    out << "element vertex " << vcount << "\n";
+    out << "property float x\n";
+    out << "property float y\n";
+    out << "property float z\n";
+    out << "end_header\n";
+    out << v.str();
+
+    out.close();
+
+    OMPL_INFORM("%d samples have been written to file %s. ", vcount, filename.c_str());
 }

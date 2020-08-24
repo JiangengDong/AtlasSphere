@@ -11,10 +11,11 @@ from models import VoxelEncoder, PNet, PNet_Annotated
 
 
 def load_dataset():
-    with h5py.File("./data/dataset.hdf5", 'r') as h5_file:
-        samples = torch.from_numpy(h5_file["input"].value.astype(np.float32))
-        labels = torch.from_numpy(h5_file["output"].value.astype(np.float32))
-        voxels = torch.from_numpy(np.expand_dims(h5_file["voxels"].value.astype(np.float32), 0))
+    with h5py.File("./data/training_samples/new_dataset.hdf5", 'r') as h5_file:
+        samples = torch.from_numpy(h5_file["input"][()].astype(np.float32))
+        labels = torch.from_numpy(h5_file["output"][()].astype(np.float32))
+        voxels = torch.from_numpy(np.expand_dims(h5_file["voxels"][()].astype(np.float32), 0))
+        voxels = voxels.reshape([1, -1])
     return samples, labels, voxels
 
 
@@ -54,7 +55,7 @@ def train(args):
 
     for epoch in tqdm(range(args.num_epochs)):
         total_loss = 0
-        for x, y in tqdm(data_loader):
+        for x, y in data_loader:
             enet.zero_grad()
             pnet.zero_grad()
 
@@ -116,26 +117,61 @@ def copypnet(MLP_to_copy, mlp_weights):
 	return MLP_to_copy
 
 
-def temp():
+def copy_pnet_weight(destination, source):
+    # copy linear layers' weights
+    destination["fc1.0.weight"].copy_(source["fc.0.weight"])
+    destination["fc2.0.weight"].copy_(source["fc.3.weight"])
+    destination["fc3.0.weight"].copy_(source["fc.6.weight"])
+    destination["fc4.0.weight"].copy_(source["fc.9.weight"])
+    destination["fc5.0.weight"].copy_(source["fc.12.weight"])
+    destination["fc6.0.weight"].copy_(source["fc.14.weight"])
+
+    # copy linear layers' biases
+    destination["fc1.0.bias"].copy_(source["fc.0.bias"])
+    destination["fc2.0.bias"].copy_(source["fc.3.bias"])
+    destination["fc3.0.bias"].copy_(source["fc.6.bias"])
+    destination["fc4.0.bias"].copy_(source["fc.9.bias"])
+    destination["fc5.0.bias"].copy_(source["fc.12.bias"])
+    destination["fc6.0.bias"].copy_(source["fc.14.bias"])
+
+    # copy PReLU layers' weights
+    destination["fc1.1.weight"].copy_(source["fc.1.weight"])
+    destination["fc2.1.weight"].copy_(source["fc.4.weight"])
+    destination["fc3.1.weight"].copy_(source["fc.7.weight"])
+    destination["fc4.1.weight"].copy_(source["fc.10.weight"])
+    destination["fc5.1.weight"].copy_(source["fc.13.weight"])
+
+
+def export():
     pnet = PNet_Annotated()
-    pnet = copypnet(pnet, torch.load("./models/pnet400.pkl"))
-    pnet.eval()
-    pnet.train()
+    copy_pnet_weight(pnet.state_dict(), torch.load("./models/pnet400.pkl"))
+    pnet.cuda()
 
-    inp = torch.rand(1, 134)
-
+    inp = torch.rand(1, 134).cuda()
+    pnet(inp)
     pnet.save("./models/pnet.pt")
 
+    pnet = torch.jit.load("./models/pnet.pt")
+    pnet.cuda()
+    print(pnet)
+
+
+def encode_voxel():
+    enet = VoxelEncoder(40, 128)
+    enet.load_state_dict(torch.load("./models/enet400.pkl"))
+    _, _, voxels = load_dataset()
+    encoded_voxels = enet.forward(voxels)
+    np.savetxt("./models/encoded_voxels.csv", encoded_voxels.detach().numpy())
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('task', type=str, choices=("train", "test"), help='task to perform')
+    # parser.add_argument('task', type=str, choices=("train", "test"), help='task to perform')
     parser.add_argument('--model_path', type=str, default='./models/', help='path for saving trained models')
     parser.add_argument('--save_step', type=int, default=10, help='step size for saving trained models')
 
     # Model parameters
-    parser.add_argument('--insz_enet', type=int, default=40, help='dimension of ENets input vector')
+    parser.add_argument('--insz_enet', type=int, default=64000, help='dimension of ENets input vector')
     parser.add_argument('--outsz_enet', type=int, default=128, help='dimension of ENets output vector')
 
     parser.add_argument('--insz_pnet', type=int, default=134, help='dimension of PNets input vector')
@@ -144,9 +180,6 @@ if __name__ == "__main__":
     parser.add_argument('--num_epochs', type=int, default=401)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--lr', type=float, default=0.0001)
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
-    # if args.task=="train":
-    #     train(args)
-    # else:
-    temp()
+    export()

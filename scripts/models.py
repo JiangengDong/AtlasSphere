@@ -119,14 +119,14 @@ class PNet(nn.Module):
 
 class PNet_Annotated(torch.jit.ScriptModule):
     __constants__ = ['fc1','fc2','fc3','fc4','fc5','fc6', "device"]
-    def __init__(self):
+    def __init__(self, input_size, output_size):
         super(PNet_Annotated, self).__init__()
-        self.fc1 = nn.Sequential(nn.Linear(134, 512), nn.PReLU())
+        self.fc1 = nn.Sequential(nn.Linear(input_size, 512), nn.PReLU())
         self.fc2 = nn.Sequential(nn.Linear(512, 256), nn.PReLU())
         self.fc3 = nn.Sequential(nn.Linear(256, 128), nn.PReLU())
         self.fc4 = nn.Sequential(nn.Linear(128, 64), nn.PReLU())
         self.fc5 = nn.Sequential(nn.Linear(64, 32), nn.PReLU())
-        self.fc6 = nn.Sequential(nn.Linear(32, 3))
+        self.fc6 = nn.Sequential(nn.Linear(32, output_size))
 
         self.device = torch.device("cuda")
 

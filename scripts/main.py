@@ -10,8 +10,8 @@ from tqdm import tqdm
 from models import VoxelEncoder, PNet, PNet_Annotated
 
 
-def load_dataset():
-    with h5py.File("./data/training_samples/new_dataset.hdf5", 'r') as h5_file:
+def load_dataset(filepath):
+    with h5py.File(filepath, 'r') as h5_file:
         samples = torch.from_numpy(h5_file["input"][()].astype(np.float32))
         labels = torch.from_numpy(h5_file["output"][()].astype(np.float32))
         voxels = torch.from_numpy(np.expand_dims(h5_file["voxels"][()].astype(np.float32), 0))
@@ -20,10 +20,10 @@ def load_dataset():
 
 
 def train(args):
-    os.makedirs(args.model_path, exist_ok=True)
+    os.makedirs(args.model_dir, exist_ok=True)
 
     # load data
-    samples, labels, voxels = load_dataset()
+    samples, labels, voxels = load_dataset(args.dataset_path)
     voxels = voxels.repeat_interleave(args.batch_size, dim=0)
 
     # build networks
@@ -51,7 +51,7 @@ def train(args):
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     # initiate tensorboard
-    writer = SummaryWriter("logs/sphere")
+    writer = SummaryWriter(args.log_dir)
 
     for epoch in tqdm(range(args.num_epochs)):
         total_loss = 0
@@ -69,52 +69,16 @@ def train(args):
             total_loss += loss.item()
         writer.add_scalar("loss", total_loss, epoch)
         if epoch % args.save_step == 0:
-            enet_path = os.path.join(args.model_path, "enet%d.pkl" % epoch)
+            enet_path = os.path.join(args.model_dir, "enet%d.pkl" % epoch)
             torch.save(enet.state_dict(), enet_path)
-            pnet_path = os.path.join(args.model_path, "pnet%d.pkl" % epoch)
+            pnet_path = os.path.join(args.model_dir, "pnet%d.pkl" % epoch)
             torch.save(pnet.state_dict(), pnet_path)
 
     # save to torch script
     enet_scripted = torch.jit.script(enet)
-    enet_scripted.save(os.path.join(args.model_path, "enet_script.pt"))
+    enet_scripted.save(os.path.join(args.model_dir, "enet_script.pt"))
     pnet_scripted = torch.jit.script(pnet)
-    pnet_scripted.save(os.path.join(args.model_path, "pnet_script.pt"))
-
-
-def copypnet(MLP_to_copy, mlp_weights):
-	# this function is where weights are manually copied from the originally trained
-	# MPNet models (which have different naming convention for the weights that doesn't
-	# work with manual dropout implementation) into the models defined in this script
-	# which have the new layer naming convention
-
-	# mlp_weights is just a state_dict() with the good model weights, not loaded into a particular model yet
-	# MLP_to_copy is one of the MLP_Python models defined above (depending on 1.0 or 2.0)
-
-
-	MLP_to_copy.state_dict()['fc1.0.weight'].copy_(mlp_weights['fc.0.weight'])
-	MLP_to_copy.state_dict()['fc2.0.weight'].copy_(mlp_weights['fc.3.weight'])
-	MLP_to_copy.state_dict()['fc3.0.weight'].copy_(mlp_weights['fc.6.weight'])
-	MLP_to_copy.state_dict()['fc4.0.weight'].copy_(mlp_weights['fc.9.weight'])
-	MLP_to_copy.state_dict()['fc5.0.weight'].copy_(mlp_weights['fc.12.weight'])
-	MLP_to_copy.state_dict()['fc6.0.weight'].copy_(mlp_weights['fc.14.weight'])
-
-
-	MLP_to_copy.state_dict()['fc1.0.bias'].copy_(mlp_weights['fc.0.bias'])
-	MLP_to_copy.state_dict()['fc2.0.bias'].copy_(mlp_weights['fc.3.bias'])
-	MLP_to_copy.state_dict()['fc3.0.bias'].copy_(mlp_weights['fc.6.bias'])
-	MLP_to_copy.state_dict()['fc4.0.bias'].copy_(mlp_weights['fc.9.bias'])
-	MLP_to_copy.state_dict()['fc5.0.bias'].copy_(mlp_weights['fc.12.bias'])
-	MLP_to_copy.state_dict()['fc6.0.bias'].copy_(mlp_weights['fc.14.bias'])
-
-
-	MLP_to_copy.state_dict()['fc1.1.weight'].copy_(mlp_weights['fc.1.weight'])
-	MLP_to_copy.state_dict()['fc2.1.weight'].copy_(mlp_weights['fc.4.weight'])
-	MLP_to_copy.state_dict()['fc3.1.weight'].copy_(mlp_weights['fc.7.weight'])
-	MLP_to_copy.state_dict()['fc4.1.weight'].copy_(mlp_weights['fc.10.weight'])
-	MLP_to_copy.state_dict()['fc5.1.weight'].copy_(mlp_weights['fc.13.weight'])
-
-
-	return MLP_to_copy
+    pnet_scripted.save(os.path.join(args.model_dir, "pnet_script.pt"))
 
 
 def copy_pnet_weight(destination, source):
@@ -142,32 +106,30 @@ def copy_pnet_weight(destination, source):
     destination["fc5.1.weight"].copy_(source["fc.13.weight"])
 
 
-def export():
-    pnet = PNet_Annotated()
-    copy_pnet_weight(pnet.state_dict(), torch.load("./models/pnet400.pkl"))
+def export(args):
+    pnet = PNet_Annotated(args.insz_pnet, args.outsz_pnet)
+    pnet_weight_path = os.path.join(args.model_dir, "pnet%d.pkl" % (args.num_epochs-1))
+    copy_pnet_weight(pnet.state_dict(), torch.load(pnet_weight_path))
     pnet.cuda()
-
     inp = torch.rand(1, 134).cuda()
     pnet(inp)
-    pnet.save("./models/pnet.pt")
+    pnet.save(os.path.join(args.export_dir, "enet.pkl"))
 
-    pnet = torch.jit.load("./models/pnet.pt")
-    pnet.cuda()
-    print(pnet)
-
-
-def encode_voxel():
-    enet = VoxelEncoder(40, 128)
-    enet.load_state_dict(torch.load("./models/enet400.pkl"))
-    _, _, voxels = load_dataset()
+    enet = VoxelEncoder(args.insz_enet, args.outsz_enet)
+    enet_weight_path = os.path.join(args.model_dir, "enet%d.pkl" % (args.num_epochs-1))
+    enet.load_state_dict(torch.load(enet_weight_path))
+    _, _, voxels = load_dataset(args.dataset_path)
     encoded_voxels = enet.forward(voxels)
-    np.savetxt("./models/encoded_voxels.csv", encoded_voxels.detach().numpy())
+    np.savetxt(os.path.join(args.export_dir, "voxel.csv"), encoded_voxels.detach().numpy().T)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument('task', type=str, choices=("train", "test"), help='task to perform')
-    parser.add_argument('--model_path', type=str, default='./models/', help='path for saving trained models')
+    parser.add_argument('task', type=str, choices=("train", "export"), help='task to perform')
+    parser.add_argument('--model_dir', type=str, default='./data/pytorch_models/', help='path for saving trained models')
+    parser.add_argument('--log_dir', type=str, default='./data/tensorboard_logs/', help='path for saving tensorboard logs')
+    parser.add_argument('--export_dir', type=str, default="./data/export/", help='path for exporting pnet and voxels')
+    parser.add_argument('--dataset_path', type=str, default='./data/training_samples/new_dataset.hdf5', help='path of dataset')
     parser.add_argument('--save_step', type=int, default=10, help='step size for saving trained models')
 
     # Model parameters
@@ -182,4 +144,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.0001)
     args = parser.parse_args()
 
-    export()
+    if args.task == "train":
+        train(args)
+    elif args.task == "export":
+        export(args)

@@ -50,7 +50,7 @@
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include "FMT.h"
 
-ompl::geometric::FMT::FMT(const base::SpaceInformationPtr &si)
+ompl::geometric::FMT::FMT(const base::SpaceInformationPtr &si, const std::string &pnet_path, const std::string &voxel_path)
   : base::Planner(si, "FMT")
 {
     // An upper bound on the free space volume is the total space volume; the free fraction is estimated in sampleFree
@@ -68,6 +68,9 @@ ompl::geometric::FMT::FMT(const base::SpaceInformationPtr &si)
     ompl::base::Planner::declareParam<bool>("cache_cc", this, &FMT::setCacheCC, &FMT::getCacheCC, "0,1");
     ompl::base::Planner::declareParam<bool>("heuristics", this, &FMT::setHeuristics, &FMT::getHeuristics, "0,1");
     ompl::base::Planner::declareParam<bool>("extended_fmt", this, &FMT::setExtendedFMT, &FMT::getExtendedFMT, "0,1");
+
+    mpnet_sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
+
 }
 
 ompl::geometric::FMT::~FMT()
@@ -115,7 +118,6 @@ void ompl::geometric::FMT::setup()
         OMPL_INFORM("%s: problem definition is not set, deferring setup completion...", getName().c_str());
         setup_ = false;
     }
-    mpnet_sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
 }
 
 void ompl::geometric::FMT::freeMemory()
@@ -215,6 +217,7 @@ void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &p
     unsigned int nodeCount = 0;
     unsigned int sampleAttempts = 0;
 
+    // // block: uniform sample start
     // auto *motion = new Motion(si_);
     // // Sample numSamples_ number of nodes from the free configuration space
     // while (nodeCount < numSamples_ && !ptc)
@@ -233,7 +236,10 @@ void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &p
     // }      // While nodeCount < numSamples
     // si_->freeState(motion->getState());
     // delete motion;
+    // // block: uniform sample end
 
+
+    // block: neural sample start
     std::vector<ompl::base::State *> samples(20, nullptr);
     std::vector<const ompl::base::State *> starts, goals;
     pis_.restart();
@@ -280,6 +286,7 @@ void ompl::geometric::FMT::sampleFree(const base::PlannerTerminationCondition &p
         }
     }
     si_->freeStates(samples);
+    // block: neural sample end
 
     // 95% confidence limit for an upper bound for the true free space volume
     freeSpaceVolume_ = boost::math::binomial_distribution<>::find_upper_bound_on_p(sampleAttempts, nodeCount, 0.05) *

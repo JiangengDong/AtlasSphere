@@ -1,18 +1,17 @@
 add_executable(SpherePlanningExecutable
         main.cpp
         SpherePlanning.cpp
-        RRTConnect.cpp
-        RRTstar.cpp
-        MPNetPlanner.cpp
-        MPNetSampler.cpp
         Parameter.cpp
-        BITstar.cpp 
-        ImplicitGraph.cpp
-        FMT.cpp 
+        planner/RRTConnect.cpp
+        planner/RRTstar.cpp
+        planner/MPNetPlanner.cpp
+        planner/MPNetSampler.cpp
+        planner/FMT.cpp 
         )
 target_include_directories(SpherePlanningExecutable
     PRIVATE
-        ./include)
+        ./include
+        ./planner/include)
 target_link_libraries(SpherePlanningExecutable
     PRIVATE
         Eigen3::Eigen

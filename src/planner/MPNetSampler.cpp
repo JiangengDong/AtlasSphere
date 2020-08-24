@@ -9,12 +9,10 @@
 AtlasMPNet::MPNetSampler::MPNetSampler(const ompl::base::StateSpace *space, std::string pnet_path, std::string voxel_path) : ompl::base::StateSampler(space){
     dim_ = 3;
 
-    std::string pnet_filename="./models/pnet_script.pt";    // TODO: change this to a parameter
     pnet_ = torch::jit::load(pnet_path);
     pnet_.to(at::kCUDA);
     OMPL_DEBUG("Load %s successfully.", pnet_path.c_str());
 
-    std::string voxel_filename="./data/encoded_voxels.csv";     // TODO: change this to a parameter
     std::vector<float> voxel_vec = loadData(voxel_path, 128);
     voxel_ = torch::from_blob(voxel_vec.data(), {1, 128}).clone();
     OMPL_DEBUG("Load %s successfully.", voxel_path.c_str());

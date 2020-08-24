@@ -14,9 +14,7 @@
 #include <ompl/base/spaces/constraint/TangentBundleStateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/planners/prm/PRMstar.h>
-#include <ompl/geometric/planners/rrt/InformedRRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
-#include <ompl/geometric/planners/rrt/RRTstar.h>
 #include <ompl/geometric/planners/bitstar/BITstar.h>
 #include "FMT.h"
 
@@ -24,6 +22,7 @@
 #include "Parameter.h"
 #include "SphereConstraint.h"
 #include "SphereValidityChecker.h"
+#include "RRTstar.h"
 
 SpherePlanning::SpherePlanning(Parameter param) : _param(param) {
     init = setAmbientStateSpace() && setConstraint() && setConstrainedStateSpace() && setStateValidityChecker() && setPlanner() && setSimpleSetup();
@@ -295,21 +294,22 @@ bool SpherePlanning::setPlanner() {
         break;
     }
     case Parameter::CoMPNet: {
-        std::string pnet_path=(_param.input_dir/"pnet.pt").string(), voxel_path=(_param.input_dir/"voxel.csv").string();
-        _planner = std::make_shared<ompl::geometric::MPNetPlanner>(_constrained_space_info, pnet_path, voxel_path);
+        _planner = std::make_shared<ompl::geometric::MPNetPlanner>(_constrained_space_info, 
+            "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", 
+            "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
         break;
     }
     case Parameter::RRTstar: {
-        _planner = std::make_shared<ompl::geometric::RRTstar>(_constrained_space_info);
+        _planner = std::make_shared<ompl::geometric::RRTstar>(_constrained_space_info, 
+            "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", 
+            "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
         _planner->as<ompl::geometric::RRTstar>()->setRange(0.05);
         break;
     }
-    case Parameter::BITstar: {
-        _planner = std::make_shared<ompl::geometric::BITstar>(_constrained_space_info);
-        break;
-    }
     case Parameter::FMT: {
-        _planner = std::make_shared<ompl::geometric::FMT>(_constrained_space_info);
+        _planner = std::make_shared<ompl::geometric::FMT>(_constrained_space_info, 
+            "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", 
+            "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
         break;
     }
     }

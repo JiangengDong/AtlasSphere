@@ -13,7 +13,6 @@
 #include <ompl/base/StateValidityChecker.h>
 #include <ompl/base/Planner.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
-#include <ompl/geometric/planners/rrt/RRTstar.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/base/PlannerData.h>
 

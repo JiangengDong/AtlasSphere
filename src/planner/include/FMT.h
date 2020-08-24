@@ -91,7 +91,7 @@ namespace ompl
         class FMT : public ompl::base::Planner
         {
         public:
-            FMT(const base::SpaceInformationPtr &si);
+            FMT(const base::SpaceInformationPtr &si, const std::string &pnet_path, const std::string &voxel_path);
 
             ~FMT() override;
 

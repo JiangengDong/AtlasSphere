@@ -128,6 +128,8 @@ ompl::geometric::MPNetPlanner::GrowState ompl::geometric::MPNetPlanner::growTree
     }
     tgi.xmotion = motion;
 
+    si_->freeStates(stateList);
+
     return reach ? REACHED : ADVANCED;
 }
 

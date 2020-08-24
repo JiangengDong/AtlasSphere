@@ -34,7 +34,7 @@
 
 /* Authors: Alejandro Perez, Sertac Karaman, Ryan Luna, Luis G. Torres, Ioan Sucan, Javier V Gomez, Jonathan Gammell */
 
-#include "ompl/geometric/planners/rrt/RRTstar.h"
+#include "RRTstar.h"
 #include <algorithm>
 #include <boost/math/constants/constants.hpp>
 #include <limits>
@@ -51,7 +51,7 @@
 #include "ompl/util/GeometricEquations.h"
 #include "MPNetSampler.h"
 
-ompl::geometric::RRTstar::RRTstar(const base::SpaceInformationPtr &si)
+ompl::geometric::RRTstar::RRTstar(const base::SpaceInformationPtr &si, const std::string &pnet_path, const std::string &voxel_path)
   : base::Planner(si, "RRTstar")
 {
     specs_.approximateSolutions = true;
@@ -86,6 +86,8 @@ ompl::geometric::RRTstar::RRTstar(const base::SpaceInformationPtr &si)
 
     addPlannerProgressProperty("iterations INTEGER", [this] { return numIterationsProperty(); });
     addPlannerProgressProperty("best cost REAL", [this] { return bestCostProperty(); });
+
+    mpnet_sampler = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
 }
 
 ompl::geometric::RRTstar::~RRTstar()
@@ -170,7 +172,6 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
     base::Goal *goal = pdef_->getGoal().get();
     auto *goal_s = dynamic_cast<base::GoalSampleableRegion *>(goal);
 
-    auto mpnet_sampler = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), "/workspaces/AtlasSphere/data/pytorch_models/pnet.pt", "/workspaces/AtlasSphere/data/pytorch_models/voxel.csv");
     ompl::base::State *sA, *sB;
     sA = si_->allocState();
     sB = si_->allocState();
@@ -266,15 +267,19 @@ ompl::base::PlannerStatus ompl::geometric::RRTstar::solve(const base::PlannerTer
             goal_s->sampleGoal(rstate);
         else
         {
+            // // block: uniform sample start
             // // Attempt to generate a sample, if we fail (e.g., too many rejection attempts), skip the remainder of this loop and return to try again
             // if (!sampleUniform(rstate))
             //     continue;
+            // // block: uniform sample end
 
+            // block: neural sample start
             // mpnet sampler
             auto index_existing = rand() % data.size();
             mpnet_sampler->sample(data[index_existing]->state, sB, rstate);
             if (!si_->isValid(rstate))
                 continue;
+            // block: neural sample end
         }
 
         // find closest state in the tree

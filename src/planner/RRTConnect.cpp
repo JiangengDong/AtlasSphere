@@ -133,6 +133,8 @@ ompl::geometric::RRTConnect::GrowState ompl::geometric::RRTConnect::growTree(Tre
     }
     tgi.xmotion = motion;
 
+    si_->freeStates(stateList);
+
     return reach ? REACHED : ADVANCED;
 }
 

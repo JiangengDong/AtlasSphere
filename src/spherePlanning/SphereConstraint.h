@@ -17,9 +17,13 @@ public:
     }
 
     void jacobian(const Eigen::Ref<const Eigen::VectorXd> &x, Eigen::Ref<Eigen::MatrixXd> out) const override {
-        out = 2*x.transpose();
+        out = 2 * x.transpose();
+    }
+
+    bool project(Eigen::Ref<Eigen::VectorXd> x) const override {
+        x /= x.norm();
+        return true;
     }
 };
-
 
 #endif //ATLASSPHERE_SPHERECONSTRAINT_H

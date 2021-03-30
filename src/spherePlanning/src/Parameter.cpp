@@ -1,4 +1,7 @@
 #include "Parameter.h"
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 
 Parameter::Parameter(int argc, char **argv) {
     // define options

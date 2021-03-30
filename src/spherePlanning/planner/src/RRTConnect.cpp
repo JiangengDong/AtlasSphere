@@ -117,6 +117,7 @@ ompl::geometric::RRTConnect::GrowState ompl::geometric::RRTConnect::growTree(Tre
 
     if (stateList.empty()                                        // did not traverse at all
         || si_->equalStates(nmotion->state, stateList.back())) { // did not make a progress
+        si_->freeStates(stateList);
         return TRAPPED;
     }
 
@@ -171,7 +172,6 @@ ompl::base::PlannerStatus ompl::geometric::RRTConnect::solve(const base::Planner
                 (int)(tStart_->size() + tGoal_->size()));
 
     TreeGrowingInfo tgi{};
-    tgi.xstate = si_->allocState();
 
     Motion *approxsol = nullptr;
     double approxdif = std::numeric_limits<double>::infinity();
@@ -213,7 +213,7 @@ ompl::base::PlannerStatus ompl::geometric::RRTConnect::solve(const base::Planner
 
             /* if reached, it means we used rstate directly, no need top copy again */
             if (gs != REACHED)
-                si_->copyState(rstate, tgi.xstate);
+                si_->copyState(rstate, tgi.xmotion->state);
 
             tgi.start = startTree;
             GrowState gsc = growTree(otherTree, tgi, rmotion);
@@ -281,7 +281,6 @@ ompl::base::PlannerStatus ompl::geometric::RRTConnect::solve(const base::Planner
         }
     }
 
-    si_->freeState(tgi.xstate);
     si_->freeState(rstate);
     delete rmotion;
 

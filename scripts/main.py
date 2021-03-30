@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.tensorboard import SummaryWriter
 
 
 def get_data() -> [torch.Tensor]:
@@ -24,12 +25,15 @@ def get_data() -> [torch.Tensor]:
 def main():
     inputs, outputs, voxel_idxs, voxels = get_data()
     dataset = DataLoader(TensorDataset(inputs, outputs, voxel_idxs), batch_size=1024, shuffle=True)
+    # TODO: use ScriptModule from the beginning, so that we do not need to convert it later.
     mpnet = MPNet().cuda()
     optimizer = torch.optim.Adam(mpnet.parameters())
+    writer = SummaryWriter("./data/tensorboard")
 
     def id_to_voxel(idxs: torch.Tensor) -> torch.Tensor:
         return torch.index_select(voxels, 0, idxs)
 
+    idx = 0
     for x, y, z in tqdm(dataset):
         x = x.cuda(non_blocking=True)
         y = y.cuda(non_blocking=True)
@@ -38,6 +42,13 @@ def main():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        writer.add_scalar("loss", loss, idx)
+
+        if idx % 100 == 0:
+            torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight.pt")
+
+        idx += 1
 
 
 if __name__ == "__main__":

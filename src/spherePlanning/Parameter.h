@@ -1,10 +1,9 @@
 #ifndef ATLASSPHERE_PARAMETER_H
 #define ATLASSPHERE_PARAMETER_H
 
-#include "yaml-cpp/yaml.h"
+#include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
 #include <ompl/util/Console.h>
@@ -13,10 +12,26 @@
 #include <string>
 #include <time.h>
 
-namespace po = boost::program_options;
-
 class Parameter {
 public:
+    unsigned int num_iter;
+    enum SpaceType { PROJ = 0,
+                     ATLAS,
+                     TB } space;
+    enum PlannerType { RRTConnect = 0,
+                       CoMPNet,
+                       RRTstar,
+                       BITstar,
+                       FMT } planner;
+    unsigned int seed;
+    ompl::msg::LogLevel log_level;
+    boost::filesystem::path input_dir;
+    boost::filesystem::path output_dir;
+    enum TaskType { GENERATE_PATH = 0,
+                    GENERATE_SMOOTH,
+                    GENERATE_VISUAL } task;
+    Eigen::Matrix2Xd brick_configs;
+
     Parameter(int argc, char **argv);
     Parameter() = default;
 
@@ -48,7 +63,7 @@ public:
 
     bool set_task(std::string task) {
         boost::algorithm::to_lower(task);
-        if(task == "generate_path")
+        if (task == "generate_path")
             this->task = GENERATE_PATH;
         else if (task == "generate_smooth")
             this->task = GENERATE_SMOOTH;
@@ -58,21 +73,6 @@ public:
             OMPL_ERROR("Unsupported task.");
         return true;
     }
-
-    unsigned int num_iter;
-    enum SpaceType { PROJ = 0,
-                     ATLAS,
-                     TB } space;
-    enum PlannerType { RRTConnect = 0,
-                       CoMPNet,
-                       RRTstar, 
-                       BITstar, 
-                       FMT } planner;
-    unsigned int seed;
-    ompl::msg::LogLevel log_level;
-    boost::filesystem::path input_dir;
-    boost::filesystem::path output_dir;
-    enum TaskType { GENERATE_PATH = 0, GENERATE_SMOOTH, GENERATE_VISUAL} task;
 
     friend std::ostream &operator<<(std::ostream &o, SpaceType s);
 

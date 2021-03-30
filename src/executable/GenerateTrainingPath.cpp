@@ -45,7 +45,7 @@ int plan(const std::string &brick_config_path, const std::string &start_path, co
 int main(int argc, char **argv) {
     srand(0);
     ompl::msg::setLogLevel(ompl::msg::LOG_NONE);
-    for (unsigned int i = 1; i < 10; i++) {
+    for (unsigned int i = 0; i < 10; i++) {
         std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
         std::string start_path = (boost::format("./data/train/env%d_start.npy") % i).str();
         std::string goal_path = (boost::format("./data/train/env%d_goal.npy") % i).str();

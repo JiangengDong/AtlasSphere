@@ -13,6 +13,7 @@ def convert_point_cloud_to_voxel(point_cloud_path: str, voxel_path: str):
     np.save(voxel_path, converted_voxel)
 
 def main():
+    convert_point_cloud_to_voxel("./data/point_cloud/envOld.npy", "./data/voxel/envOld.npy")
     for i in range(20):
         convert_point_cloud_to_voxel("./data/point_cloud/env{}.npy".format(i), "./data/voxel/env{}.npy".format(i))
 

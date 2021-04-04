@@ -34,7 +34,7 @@
 
 /* Author: Ioan Sucan */
 
-#include "MPNetPlanner.h"
+#include "planner/MPNetPlanner.h"
 
 #include <ompl/base/goals/GoalSampleableRegion.h>
 #include <ompl/base/spaces/constraint/AtlasStateSpace.h>
@@ -113,6 +113,7 @@ ompl::geometric::MPNetPlanner::GrowState ompl::geometric::MPNetPlanner::growTree
 
     if (stateList.empty()                                        // did not traverse at all
         || si_->equalStates(nmotion->state, stateList.back())) { // did not make a progress
+        si_->freeStates(stateList);
         return TRAPPED;
     }
     Motion *motion = nullptr;
@@ -133,15 +134,15 @@ ompl::geometric::MPNetPlanner::GrowState ompl::geometric::MPNetPlanner::growTree
     return reach ? REACHED : ADVANCED;
 }
 
-ompl::geometric::MPNetPlanner::Motion* ompl::geometric::MPNetPlanner::nearest(const TreeData &tree, const Motion* center) {
+ompl::geometric::MPNetPlanner::Motion *ompl::geometric::MPNetPlanner::nearest(const TreeData &tree, const Motion *center) {
     std::vector<Motion *> motions;
     tree->list(motions);
-    
+
     double min_dist = INFINITY;
-    Motion* best;
+    Motion *best;
     double dist = 0.0;
 
-    for(const auto& motion:motions) {
+    for (const auto &motion : motions) {
         dist = distanceFunction(motion, center);
         if (dist < min_dist) {
             best = motion;
@@ -149,7 +150,7 @@ ompl::geometric::MPNetPlanner::Motion* ompl::geometric::MPNetPlanner::nearest(co
         }
     }
     return best;
-}   
+}
 
 ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::PlannerTerminationCondition &ptc) {
     checkValidity();
@@ -215,7 +216,7 @@ ompl::base::PlannerStatus ompl::geometric::MPNetPlanner::solve(const base::Plann
         }
 
         /* sample random state */
-        if(use_mpnet)
+        if (use_mpnet)
             mpnet_sampler_->sample(motionA->state, motionB->state, rstate);
         else
             simple_sampler_->sampleUniform(rstate);
@@ -355,12 +356,12 @@ void ompl::geometric::MPNetPlanner::exportSamples(std::string filename) const {
     std::ofstream out(filename);
     std::stringstream v;
     std::size_t vcount = 0;
-    for (const auto& sample: samples_memory_) {
-        for (const auto& val: sample) {
+    for (const auto &sample : samples_memory_) {
+        for (const auto &val : sample) {
             v << val << " ";
         }
         v << "\n";
-        vcount ++ ;
+        vcount++;
     }
 
     out << "ply\n";

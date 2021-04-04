@@ -2,19 +2,18 @@
 // Created by jiangeng on 3/29/20.
 //
 
-#include "MPNetSampler.h"
+#include "planner/MPNetSampler.h"
 #include <ompl/base/spaces/constraint/AtlasStateSpace.h>
 
-
-AtlasMPNet::MPNetSampler::MPNetSampler(const ompl::base::StateSpace *space, std::string pnet_path, std::string voxel_path) : ompl::base::StateSampler(space){
+AtlasMPNet::MPNetSampler::MPNetSampler(const ompl::base::StateSpace *space, std::string pnet_path, std::string voxel_path) : ompl::base::StateSampler(space) {
     dim_ = 3;
 
     pnet_ = torch::jit::load(pnet_path);
     pnet_.to(at::kCUDA);
     OMPL_DEBUG("Load %s successfully.", pnet_path.c_str());
 
-    std::vector<float> voxel_vec = loadData(voxel_path, 128);
-    voxel_ = torch::from_blob(voxel_vec.data(), {1, 128}).clone();
+    std::vector<float> voxel_vec = loadData(voxel_path, 64);
+    voxel_ = torch::from_blob(voxel_vec.data(), {1, 64}).clone();
     OMPL_DEBUG("Load %s successfully.", voxel_path.c_str());
 }
 
@@ -29,11 +28,11 @@ bool AtlasMPNet::MPNetSampler::sample(const ompl::base::State *start, const ompl
 
     auto sample_config = toVector(pnet_output);
     double norm = 0;
-    for (auto &x: sample_config) {
-        norm += x*x;
+    for (auto &x : sample_config) {
+        norm += x * x;
     }
     norm = sqrt(norm);
-    for (auto &x: sample_config) {
+    for (auto &x : sample_config) {
         x /= norm;
     }
 
@@ -44,13 +43,13 @@ bool AtlasMPNet::MPNetSampler::sample(const ompl::base::State *start, const ompl
 bool AtlasMPNet::MPNetSampler::sampleBatch(const std::vector<const ompl::base::State *> &starts, const std::vector<const ompl::base::State *> &goals, std::vector<ompl::base::State *> &samples) {
     std::vector<float> starts_vec, goals_vec;
     long n = starts.size();
-    for (const auto & start: starts) {
+    for (const auto &start : starts) {
         auto &start_raw = *start->as<ompl::base::ConstrainedStateSpace::StateType>();
         starts_vec.emplace_back(start_raw[0]);
         starts_vec.emplace_back(start_raw[1]);
         starts_vec.emplace_back(start_raw[2]);
     }
-    for (const auto & goal: goals) {
+    for (const auto &goal : goals) {
         auto &goal_raw = *goal->as<ompl::base::ConstrainedStateSpace::StateType>();
         goals_vec.emplace_back(goal_raw[0]);
         goals_vec.emplace_back(goal_raw[1]);
@@ -63,15 +62,15 @@ bool AtlasMPNet::MPNetSampler::sampleBatch(const std::vector<const ompl::base::S
     auto pnet_input = torch::cat({voxels_tensor, starts_tensor, goals_tensor}, 1).to(at::kCUDA);
     auto pnet_output = pnet_.forward({pnet_input}).toTensor().to(at::kCPU);
     auto samples_data = pnet_output.accessor<float, 2>();
-    for (long i=0; i<n; i++) {
+    for (long i = 0; i < n; i++) {
         auto &sample_raw = *samples[i]->as<ompl::base::ConstrainedStateSpace::StateType>();
         sample_raw[0] = samples_data[i][0];
         sample_raw[1] = samples_data[i][1];
         sample_raw[2] = samples_data[i][2];
-        auto norm = sample_raw[0]*sample_raw[0]+sample_raw[1]*sample_raw[1]+sample_raw[2]*sample_raw[2];
-        sample_raw[0]/=norm;
-        sample_raw[1]/=norm;
-        sample_raw[2]/=norm;
+        auto norm = sample_raw[0] * sample_raw[0] + sample_raw[1] * sample_raw[1] + sample_raw[2] * sample_raw[2];
+        sample_raw[0] /= norm;
+        sample_raw[1] /= norm;
+        sample_raw[2] /= norm;
     }
 }
 

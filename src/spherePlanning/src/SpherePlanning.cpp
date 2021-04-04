@@ -9,6 +9,7 @@
 #include "SphereValidityChecker.h"
 #include <algorithm>
 #include <fstream>
+#include <memory>
 #include <ompl/base/ConstrainedSpaceInformation.h>
 #include <ompl/base/PlannerData.h>
 #include <ompl/base/PlannerStatus.h>
@@ -20,6 +21,8 @@
 #include <ompl/geometric/planners/prm/PRMstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/util/Console.h>
+
+#include "planner/MPNetPlanner.h"
 
 SpherePlanning::SpherePlanning(Parameter param) : _param(param) {
     init = setAmbientStateSpace() &&
@@ -44,7 +47,7 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start,
 
     setStartGoal(start, goal);
     ompl::base::PlannerStatus status = ompl::base::PlannerStatus::TIMEOUT;
-    status = _simple_setup->solve(5);
+    status = _simple_setup->solve(50);
     _simple_setup->getPlannerData(*_planner_data);
     if (status == ompl::base::PlannerStatus::EXACT_SOLUTION) {
         return true;
@@ -79,7 +82,7 @@ Eigen::MatrixXd SpherePlanning::getPath() const {
 
 /** Caution: the matrix returned is column-major, i.e. `M[i, j] = *(M.data() + i
  * + j * num_rows)`. Hence the returned shape is `3*N`. */
-Eigen::MatrixXd SpherePlanning::getSmoothPath() const {
+Eigen::MatrixXd SpherePlanning::getSmoothPath(unsigned int n_smooth) const {
     OMPL_INFORM("Smoothing the path.");
     auto constrained_space = _constrained_space->as<ompl::base::ConstrainedStateSpace>();
     const auto &path = _simple_setup->getSolutionPath();
@@ -93,7 +96,7 @@ Eigen::MatrixXd SpherePlanning::getSmoothPath() const {
         constrained_space->copyState(old_path[idx_copy], path.getState(idx_copy));
     }
     // smooth: try to find shortcut between any two states on the path
-    for (unsigned int idx_smooth = 0; idx_smooth < 2; idx_smooth++) {
+    for (unsigned int idx_smooth = 0; idx_smooth < n_smooth; idx_smooth++) {
         new_path.clear();
         unsigned int n = old_path.size();
         unsigned int idx_Start = 0;
@@ -265,7 +268,7 @@ bool SpherePlanning::setConstrainedStateSpace() {
         }
     }
 
-    _constrained_space->setDelta(0.05);
+    _constrained_space->setDelta(0.01);
     _constrained_space->setLambda(2.0);
 
     if (_param.space !=
@@ -319,7 +322,11 @@ bool SpherePlanning::setConstrainedStateSpace() {
 }
 
 bool SpherePlanning::setStateValidityChecker() {
-    _state_validity_checker = std::make_shared<BrickValidityChecker>(_constrained_space_info, _param.brick_configs);
+    if (_param.is_brick_env) {
+        _state_validity_checker = std::make_shared<BrickValidityChecker>(_constrained_space_info, _param.brick_configs);
+    } else {
+        _state_validity_checker = std::make_shared<SphereValidityChecker>(_constrained_space_info);
+    }
     if (_state_validity_checker == nullptr) {
         OMPL_ERROR("Failed to construct state validity checker!");
         return false;
@@ -331,10 +338,16 @@ bool SpherePlanning::setStateValidityChecker() {
 bool SpherePlanning::setPlanner() {
     switch (_param.planner) {
         case Parameter::RRTConnect: {
-            _planner =
-                std::make_shared<ompl::geometric::RRTConnect>(_constrained_space_info);
+            _planner = std::make_shared<ompl::geometric::RRTConnect>(_constrained_space_info);
             _planner->as<ompl::geometric::RRTConnect>()->setRange(0.05);
             break;
+        }
+        case Parameter::CoMPNet: {
+            _planner = std::make_shared<ompl::geometric::MPNetPlanner>(
+                _constrained_space_info,
+                "./data/pytorch_model/pnet_script_gpu.pt",
+                "./data/voxel/env0_embedded.csv");
+            _planner->as<ompl::geometric::MPNetPlanner>()->setRange(0.05);
         }
         default: {
             break;

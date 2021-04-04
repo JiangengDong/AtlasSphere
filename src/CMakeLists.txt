@@ -2,6 +2,8 @@ add_library(SpherePlanning
     ./spherePlanning/src/SpherePlanning.cpp
     ./spherePlanning/src/Parameter.cpp
     ./spherePlanning/planner/src/RRTConnect.cpp
+    ./spherePlanning/planner/src/MPNetPlanner.cpp
+    ./spherePlanning/planner/src/MPNetSampler.cpp
     )
 target_include_directories(SpherePlanning
     PUBLIC
@@ -10,7 +12,7 @@ target_link_libraries(SpherePlanning
     PUBLIC
         Eigen3::Eigen
         ompl_interface
-        # torch
+        torch
         Boost::boost
         Boost::program_options
         Boost::filesystem)
@@ -28,4 +30,19 @@ target_link_libraries(GenerateTrainingPath
 add_executable(GeneratePointCloud
     ./executable/GeneratePointCloud.cpp)
 target_link_libraries(GeneratePointCloud
+    PUBLIC SpherePlanning cnpy-static)
+
+add_executable(GenerateTestingStartAndGoal
+    ./executable/GenerateTestingStartAndGoal.cpp)
+target_link_libraries(GenerateTestingStartAndGoal
+    PUBLIC SpherePlanning cnpy-static)
+
+add_executable(TestCoMPNet
+    ./executable/TestCoMPNet.cpp)
+target_link_libraries(TestCoMPNet
+    PUBLIC SpherePlanning cnpy-static)
+
+add_executable(temp
+    ./executable/temp.cpp)
+target_link_libraries(temp
     PUBLIC SpherePlanning cnpy-static)

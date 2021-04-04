@@ -30,6 +30,7 @@ public:
     enum TaskType { GENERATE_PATH = 0,
                     GENERATE_SMOOTH,
                     GENERATE_VISUAL } task;
+    bool is_brick_env = true;
     Eigen::Matrix2Xd brick_configs;
 
     Parameter(int argc, char **argv);

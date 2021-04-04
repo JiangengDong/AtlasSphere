@@ -29,7 +29,7 @@ public:
 
     Eigen::MatrixXd getPath() const;
 
-    Eigen::MatrixXd getSmoothPath() const;
+    Eigen::MatrixXd getSmoothPath(unsigned int n_smooth = 100) const;
 
     double getPathLength() const;
 

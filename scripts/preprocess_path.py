@@ -25,7 +25,7 @@ def preprocess_path(path_path: str, output_path: str):
 
 
 def main():
-    for i in tqdm(range(10)):
+    for i in tqdm(range(40)):
         preprocess_path("./data/train/env{}_path.npz".format(i),
                         "./data/train/env{}_cleaned.npz".format(i))
 

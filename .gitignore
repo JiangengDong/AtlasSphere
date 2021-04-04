@@ -4,6 +4,7 @@
 /.vscode/
 /build/
 /data/
+/data
 *.cpython-*.so
 /bin/
 /logs/

@@ -12,7 +12,7 @@ def get_data() -> [torch.Tensor]:
     outputs = []
     voxel_idxs = []
     voxels = []
-    for i in range(10):
+    for i in range(40):
         with np.load("./data/train/env{}_cleaned.npz".format(i)) as data:
             inputs.append(data["input"].astype(np.float32))
             outputs.append(data["output"].astype(np.float32))
@@ -24,7 +24,7 @@ def get_data() -> [torch.Tensor]:
 
 def main():
     inputs, outputs, voxel_idxs, voxels = get_data()
-    dataset = DataLoader(TensorDataset(inputs, outputs, voxel_idxs), batch_size=1024, shuffle=True)
+    dataset = DataLoader(TensorDataset(inputs, outputs, voxel_idxs), batch_size=256, shuffle=True)
     # TODO: use ScriptModule from the beginning, so that we do not need to convert it later.
     mpnet = MPNet().cuda()
     optimizer = torch.optim.Adam(mpnet.parameters())
@@ -45,10 +45,16 @@ def main():
 
         writer.add_scalar("loss", loss, idx)
 
-        if idx % 100 == 0:
-            torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight.pt")
+        if idx % 200 == 0:
+            mpnet.encoder.save("./data/pytorch_model/enet_script_gpu.pt")
+            mpnet.pnet.save("./data/pytorch_model/pnet_script_gpu.pt")
+            mpnet.save("./data/pytorch_model/mpnet_script_gpu.pt")
 
         idx += 1
+
+    mpnet.encoder.save("./data/pytorch_model/enet_script_gpu.pt")
+    mpnet.pnet.save("./data/pytorch_model/pnet_script_gpu.pt")
+    mpnet.save("./data/pytorch_model/mpnet_script_gpu.pt")
 
 
 if __name__ == "__main__":

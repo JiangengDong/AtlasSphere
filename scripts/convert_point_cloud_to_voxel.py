@@ -1,5 +1,6 @@
 import open3d as o3d
 import numpy as np
+from tqdm import tqdm
 
 
 def convert_point_cloud_to_voxel(point_cloud_path: str, voxel_path: str):
@@ -14,7 +15,7 @@ def convert_point_cloud_to_voxel(point_cloud_path: str, voxel_path: str):
 
 def main():
     convert_point_cloud_to_voxel("./data/point_cloud/envOld.npy", "./data/voxel/envOld.npy")
-    for i in range(20):
+    for i in tqdm(range(40)):
         convert_point_cloud_to_voxel("./data/point_cloud/env{}.npy".format(i), "./data/voxel/env{}.npy".format(i))
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ Eigen::Matrix2Xd GenerateBrickConfig(unsigned int seed, unsigned int N) {
 
 int main(int argc, char **argv) {
     for (unsigned int i = 40; i < 50; i++) {
+        std::cout << "Generate brick configs for env " << i << std::endl;
         auto data = GenerateBrickConfig(i, 500);
         std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
         cnpy::npy_save(brick_config_path, data.data(), {500, 2}, "w");

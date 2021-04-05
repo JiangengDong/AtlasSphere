@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     std::cout << "Generating point cloud for old environment " << std::endl;
     generate_old_point_cloud("./data/point_cloud/envOld.npy");
 
-    for (unsigned int i = 0; i < 40; i++) {
+    for (unsigned int i = 0; i < 50; i++) {
         std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
         std::string point_cloud_path = (boost::format("./data/point_cloud/env%d.npy") % i).str();
         std::cout << "Generating point cloud for environment " << i << std::endl;

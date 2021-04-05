@@ -21,11 +21,15 @@ The Python part is used to store the sampled paths to a HDF5 file. Each path is 
 1. Train MPNet:
   1. Generate several environments with `GenerateBrickConfig.cpp`.
   1. Generate training samples:
-    1. Generate 1000 pairs of starts and goals in these environments with `GenerateTrainingStartAndGoal.cpp`.
+    1. Generate 10000 pairs of starts and goals in these environments with `GenerateTrainingStartAndGoal.cpp`.
     1. Generate paths for these starts and goals with `GenerateTrainingPath.cpp`.
     1. Clean up training samples with `preprocess_path.py`.
   1. Generate voxels:
     1. Generate point clouds for these environments with `GeneratePointCloud.cpp`.
     1. Convert point clouds to voxels with `convert_point_cloud_to_voxel.py`.
   1. Train with `main.py`.
-1. Generate embedded voxel with `convert_voxel_to_embedded_voxel.py`.
+1. Test MPNet:
+  1. Generate embedded voxel with `convert_voxel_to_embedded_voxel.py`.
+  1. Generate 1000 pairs of testing starts and goals with `GenerateTestingStartAndGoal.cpp`.
+  1. Evaluate RRTConnect's performance with `TestRRTConnect.cpp`.
+  1. Evaluate CoMPNet's performance with `TestMPNet.cpp`.

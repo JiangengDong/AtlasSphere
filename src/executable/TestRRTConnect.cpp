@@ -63,8 +63,7 @@ int main(int argc, char **argv) {
 
     // container for data
     Parameter param;
-    param.planner = Parameter::CoMPNet;
-    param.pnet = torch::jit::load("./data/pytorch_model/pnet_script_gpu.pt");
+    param.planner = Parameter::RRTConnect;
     param.space = Parameter::ATLAS;
 
     // old environment test
@@ -72,14 +71,8 @@ int main(int argc, char **argv) {
     std::string start_path = "./data/test/envOld_start.npy";
     std::string goal_path = "./data/test/envOld_goal.npy";
     std::string path_path = "./data/test/envOld_path.npz";
-    std::string voxel_path = "./data/voxel/envOld_embedded.npy";
     // load env
     param.is_brick_env = false;
-    // load voxel. Use braces to limit the lifetime of arr.
-    {
-        cnpy::NpyArray arr = cnpy::npy_load(voxel_path);
-        param.voxel = torch::from_blob(arr.data<float>(), {1, 64}).clone();
-    }
     // plan and print result
     const auto &[N_, success_count_, total_time_, total_length_] = plan(param, start_path, goal_path, path_path);
     std::cout << "Success rate: " << success_count_ * 1.0 / N_ << std::endl;
@@ -95,18 +88,12 @@ int main(int argc, char **argv) {
         std::string start_path = (boost::format("./data/test/env%d_start.npy") % i).str();
         std::string goal_path = (boost::format("./data/test/env%d_goal.npy") % i).str();
         std::string path_path = (boost::format("./data/test/env%d_path.npz") % i).str();
-        std::string voxel_path = (boost::format("./data/voxel/env%d_embedded.npy") % i).str();
 
         // load env. Use braces to limit the lifetime of arr
         {
             cnpy::NpyArray arr = cnpy::npy_load(brick_config_path);
             param.is_brick_env = true;
             param.brick_configs = Eigen::Map<Eigen::Matrix2Xd>(arr.data<double>(), 2, 500);
-        }
-        // load voxel. Use braces to limit the lifetime of arr.
-        {
-            cnpy::NpyArray arr = cnpy::npy_load(voxel_path);
-            param.voxel = torch::from_blob(arr.data<float>(), {1, 64}).clone();
         }
         // plan and print result
         const auto &[N_, success_count_, total_time_, total_length_] = plan(param, start_path, goal_path, path_path);

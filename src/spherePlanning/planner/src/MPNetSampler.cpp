@@ -3,6 +3,7 @@
 //
 
 #include "planner/MPNetSampler.h"
+#include <ATen/core/grad_mode.h>
 #include <ompl/base/spaces/constraint/AtlasStateSpace.h>
 
 AtlasMPNet::MPNetSampler::MPNetSampler(const ompl::base::StateSpace *space, const torch::jit::script::Module &pnet, const torch::Tensor &voxel) : ompl::base::StateSampler(space) {
@@ -15,6 +16,7 @@ AtlasMPNet::MPNetSampler::MPNetSampler(const ompl::base::StateSpace *space, cons
 }
 
 bool AtlasMPNet::MPNetSampler::sample(const ompl::base::State *start, const ompl::base::State *goal, ompl::base::State *sample) {
+    torch::NoGradGuard guard;
     std::vector<double> start_config(dim_), goal_config(dim_);
     space_->copyToReals(start_config, start);
     space_->copyToReals(goal_config, goal);

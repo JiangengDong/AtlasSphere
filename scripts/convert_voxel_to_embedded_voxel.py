@@ -14,6 +14,4 @@ with torch.no_grad():
     embedded_voxels = enet(voxels).cpu().numpy()
 for i in trange(50, desc="saving embedded voxels"):
     np.save("./data/voxel/env{}_embedded.npy".format(i), embedded_voxels[i])
-    np.savetxt("./data/voxel/env{}_embedded.csv".format(i), embedded_voxels[i])
 np.save("./data/voxel/envOld_embedded.npy", embedded_voxels[-1])
-np.savetxt("./data/voxel/envOld_embedded.csv", embedded_voxels[-1])

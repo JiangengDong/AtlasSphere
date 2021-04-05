@@ -1,8 +1,8 @@
 import torch
-from torch import nn, jit
+from torch import nn
 
 
-class VoxelEncoder(jit.ScriptModule):
+class VoxelEncoder(nn.Module):
     def __init__(self, voxel_shape, output_size):
         super(VoxelEncoder, self).__init__()
         in_channels = voxel_shape[0]
@@ -35,7 +35,7 @@ class VoxelEncoder(jit.ScriptModule):
         return x
 
 
-class PNet(jit.ScriptModule):
+class PNet(nn.Module):
     def __init__(self, input_size, output_size):
         super(PNet, self).__init__()
         self.fc = nn.Sequential(
@@ -54,7 +54,7 @@ class PNet(jit.ScriptModule):
         return out
 
 
-class MPNet(jit.ScriptModule):
+class MPNet(nn.Module):
     def __init__(self, voxel_shape=(40, 40, 40), encoder_output_size=64, state_size=3):
         super(MPNet, self).__init__()
         self.state_size = state_size

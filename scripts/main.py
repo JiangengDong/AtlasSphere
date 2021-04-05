@@ -25,7 +25,6 @@ def get_data() -> [torch.Tensor]:
 def main():
     inputs, outputs, voxel_idxs, voxels = get_data()
     dataset = DataLoader(TensorDataset(inputs, outputs, voxel_idxs), batch_size=256, shuffle=True)
-    # TODO: use ScriptModule from the beginning, so that we do not need to convert it later.
     mpnet = MPNet().cuda()
     optimizer = torch.optim.Adam(mpnet.parameters())
     writer = SummaryWriter("./data/tensorboard")
@@ -46,15 +45,17 @@ def main():
         writer.add_scalar("loss", loss, idx)
 
         if idx % 200 == 0:
-            mpnet.encoder.save("./data/pytorch_model/enet_script_gpu.pt")
-            mpnet.pnet.save("./data/pytorch_model/pnet_script_gpu.pt")
-            mpnet.save("./data/pytorch_model/mpnet_script_gpu.pt")
+            torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight_gpu.pt")
+            torch.jit.script(mpnet).save("./data/pytorch_model/mpnet_script_gpu.pt")
+            torch.jit.script(mpnet.encoder).save("./data/pytorch_model/enet_script_gpu.pt")
+            torch.jit.script(mpnet.pnet).save("./data/pytorch_model/pnet_script_gpu.pt")
 
         idx += 1
 
-    mpnet.encoder.save("./data/pytorch_model/enet_script_gpu.pt")
-    mpnet.pnet.save("./data/pytorch_model/pnet_script_gpu.pt")
-    mpnet.save("./data/pytorch_model/mpnet_script_gpu.pt")
+    torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight_gpu.pt")
+    torch.jit.script(mpnet).save("./data/pytorch_model/mpnet_script_gpu.pt")
+    torch.jit.script(mpnet.encoder).save("./data/pytorch_model/enet_script_gpu.pt")
+    torch.jit.script(mpnet.pnet).save("./data/pytorch_model/pnet_script_gpu.pt")
 
 
 if __name__ == "__main__":

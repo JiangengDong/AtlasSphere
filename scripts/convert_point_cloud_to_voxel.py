@@ -13,10 +13,12 @@ def convert_point_cloud_to_voxel(point_cloud_path: str, voxel_path: str):
     converted_voxel[voxel_indices[:, 0], voxel_indices[:, 1], voxel_indices[:, 2]] = 1.0
     np.save(voxel_path, converted_voxel)
 
+
 def main():
     convert_point_cloud_to_voxel("./data/point_cloud/envOld.npy", "./data/voxel/envOld.npy")
-    for i in tqdm(range(40)):
+    for i in tqdm(range(50)):
         convert_point_cloud_to_voxel("./data/point_cloud/env{}.npy".format(i), "./data/voxel/env{}.npy".format(i))
+
 
 if __name__ == "__main__":
     main()

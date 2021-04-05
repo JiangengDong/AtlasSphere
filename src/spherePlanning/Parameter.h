@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <string>
 #include <time.h>
+#include <torch/script.h>
 
 class Parameter {
 public:
-    unsigned int num_iter;
     enum SpaceType { PROJ = 0,
                      ATLAS,
                      TB } space;
@@ -23,63 +23,14 @@ public:
                        RRTstar,
                        BITstar,
                        FMT } planner;
-    unsigned int seed;
-    ompl::msg::LogLevel log_level;
-    boost::filesystem::path input_dir;
-    boost::filesystem::path output_dir;
-    enum TaskType { GENERATE_PATH = 0,
-                    GENERATE_SMOOTH,
-                    GENERATE_VISUAL } task;
+
     bool is_brick_env = true;
     Eigen::Matrix2Xd brick_configs;
 
-    Parameter(int argc, char **argv);
+    torch::jit::script::Module pnet;
+    torch::Tensor voxel;
+
     Parameter() = default;
-
-    bool set_space(std::string space) {
-        boost::algorithm::to_lower(space);
-        if (space == "proj" or space == "projection")
-            this->space = PROJ;
-        else if (space == "atlas")
-            this->space = ATLAS;
-        else if (space == "tb" or space == "tangent-bundle" or space == "tangent_bundle")
-            this->space = TB;
-        else
-            OMPL_ERROR("Unsupported space type.");
-        return true;
-    }
-
-    bool set_planner(std::string planner) {
-        boost::algorithm::to_lower(planner);
-        if (planner == "rrtconnect")
-            this->planner = RRTConnect;
-        else if (planner == "compnet")
-            this->planner = CoMPNet;
-        else if (planner == "rrtstar")
-            this->planner = RRTstar;
-        else
-            OMPL_ERROR("Unsupported planner type.");
-        return true;
-    }
-
-    bool set_task(std::string task) {
-        boost::algorithm::to_lower(task);
-        if (task == "generate_path")
-            this->task = GENERATE_PATH;
-        else if (task == "generate_smooth")
-            this->task = GENERATE_SMOOTH;
-        else if (task == "generate_visual")
-            this->task = GENERATE_VISUAL;
-        else
-            OMPL_ERROR("Unsupported task.");
-        return true;
-    }
-
-    friend std::ostream &operator<<(std::ostream &o, SpaceType s);
-
-    friend std::ostream &operator<<(std::ostream &o, PlannerType p);
-
-    friend std::ostream &operator<<(std::ostream &o, const Parameter &p);
 };
 
 #endif // ATLASSPHERE_PARAMETER_H

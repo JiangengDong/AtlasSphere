@@ -1,6 +1,5 @@
 add_library(SpherePlanning
     ./spherePlanning/src/SpherePlanning.cpp
-    ./spherePlanning/src/Parameter.cpp
     ./spherePlanning/planner/src/RRTConnect.cpp
     ./spherePlanning/planner/src/MPNetPlanner.cpp
     ./spherePlanning/planner/src/MPNetSampler.cpp
@@ -16,6 +15,11 @@ target_link_libraries(SpherePlanning
         Boost::boost
         Boost::program_options
         Boost::filesystem)
+
+add_executable(GenerateBrickConfig
+    ./executable/GenerateBrickConfig.cpp)
+target_link_libraries(GenerateBrickConfig
+    PUBLIC SpherePlanning cnpy-static)
 
 add_executable(GenerateTrainingStartAndGoal
     ./executable/GenerateTrainingStartAndGoal.cpp)

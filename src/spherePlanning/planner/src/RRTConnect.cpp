@@ -115,15 +115,18 @@ ompl::geometric::RRTConnect::GrowState ompl::geometric::RRTConnect::growTree(Tre
     std::vector<ompl::base::State *> stateList;
     bool reach = si_->getStateSpace()->as<ompl::base::ConstrainedStateSpace>()->discreteGeodesic(nmotion->state, rmotion->state, false, &stateList);
 
-    if (stateList.empty()                                        // did not traverse at all
-        || si_->equalStates(nmotion->state, stateList.back())) { // did not make a progress
+    if (stateList.empty() ||                                  // did not traverse at all
+        si_->equalStates(nmotion->state, stateList.back()) || // did not make a progress
+        !si_->checkMotion(nmotion->state, stateList.front())  // collide at the first step
+    ) {
         si_->freeStates(stateList);
         return TRAPPED;
     }
 
     Motion *motion = nullptr;
     for (auto dstate : stateList) {
-        if (!si_->satisfiesBounds(dstate))
+        if (!si_->satisfiesBounds(dstate) ||
+            !si_->checkMotion(nmotion->state, dstate))
             break;
         motion = new Motion(si_);
         si_->copyState(motion->state, dstate);

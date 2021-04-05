@@ -4,9 +4,6 @@
 
 #include "SpherePlanning.h"
 
-#include "Parameter.h"
-#include "SphereConstraint.h"
-#include "SphereValidityChecker.h"
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -22,6 +19,10 @@
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/util/Console.h>
 
+#include "MotionValidator.h"
+#include "Parameter.h"
+#include "SphereConstraint.h"
+#include "SphereValidityChecker.h"
 #include "planner/MPNetPlanner.h"
 
 SpherePlanning::SpherePlanning(Parameter param) : _param(param) {
@@ -29,6 +30,7 @@ SpherePlanning::SpherePlanning(Parameter param) : _param(param) {
            setConstraint() &&
            setConstrainedStateSpace() &&
            setStateValidityChecker() &&
+           setMotionValidator() &&
            setPlanner() &&
            setSimpleSetup();
     if (!init) {
@@ -47,7 +49,7 @@ bool SpherePlanning::planOnce(const Eigen::Ref<const Eigen::VectorXd> &start,
 
     setStartGoal(start, goal);
     ompl::base::PlannerStatus status = ompl::base::PlannerStatus::TIMEOUT;
-    status = _simple_setup->solve(50);
+    status = _simple_setup->solve(10);
     _simple_setup->getPlannerData(*_planner_data);
     if (status == ompl::base::PlannerStatus::EXACT_SOLUTION) {
         return true;
@@ -105,26 +107,32 @@ Eigen::MatrixXd SpherePlanning::getSmoothPath(unsigned int n_smooth) const {
             for (idx_Goal = n - 1; idx_Goal > idx_Start; idx_Goal--) {
                 bool connected = constrained_space->discreteGeodesic(old_path[idx_Start], old_path[idx_Goal], false, &geodesic);
                 if (connected) {
-                    double distance = 0;
-                    double new_distance = 0;
-                    for (unsigned int idx_Temp = idx_Start; idx_Temp < idx_Goal; idx_Temp++) {
-                        distance += constrained_space->distance(old_path[idx_Temp], old_path[idx_Temp + 1]);
+                    bool still_connected = true;
+                    for (unsigned int i = 0; i < geodesic.size() - 1; i++) {
+                        still_connected &= _constrained_space_info->checkMotion(geodesic[i], geodesic[i + 1]);
                     }
-                    for (unsigned int idx_Temp = 0; idx_Temp < geodesic.size() - 1; idx_Temp++) {
-                        new_distance += constrained_space->distance(geodesic[idx_Temp], geodesic[idx_Temp + 1]);
-                    }
-                    if (new_distance < distance - 1e-5) {
-                        // always copy a state, so that there will be no memory leak
-                        for (const auto &geo_state : geodesic) {
-                            auto new_state = constrained_space->allocState();
-                            constrained_space->copyState(new_state, geo_state);
-                            new_path.emplace_back(new_state);
+                    if (still_connected) {
+                        double distance = 0;
+                        double new_distance = 0;
+                        for (unsigned int idx_Temp = idx_Start; idx_Temp < idx_Goal; idx_Temp++) {
+                            distance += constrained_space->distance(old_path[idx_Temp], old_path[idx_Temp + 1]);
                         }
-                        for (const auto &geo_state : geodesic) {
-                            constrained_space->freeState(geo_state);
+                        for (unsigned int idx_Temp = 0; idx_Temp < geodesic.size() - 1; idx_Temp++) {
+                            new_distance += constrained_space->distance(geodesic[idx_Temp], geodesic[idx_Temp + 1]);
                         }
-                        geodesic.clear();
-                        break;
+                        if (new_distance < distance - 1e-5) {
+                            // always copy a state, so that there will be no memory leak
+                            for (const auto &geo_state : geodesic) {
+                                auto new_state = constrained_space->allocState();
+                                constrained_space->copyState(new_state, geo_state);
+                                new_path.emplace_back(new_state);
+                            }
+                            for (const auto &geo_state : geodesic) {
+                                constrained_space->freeState(geo_state);
+                            }
+                            geodesic.clear();
+                            break;
+                        }
                     }
                 }
                 // free geodesic
@@ -268,7 +276,7 @@ bool SpherePlanning::setConstrainedStateSpace() {
         }
     }
 
-    _constrained_space->setDelta(0.01);
+    _constrained_space->setDelta(0.05);
     _constrained_space->setLambda(2.0);
 
     if (_param.space !=
@@ -335,6 +343,15 @@ bool SpherePlanning::setStateValidityChecker() {
     return true;
 }
 
+bool SpherePlanning::setMotionValidator() {
+    std::shared_ptr<BrickMotionValidator> motion_validator;
+    if (_param.is_brick_env) {
+        motion_validator = std::make_shared<BrickMotionValidator>(_constrained_space_info, _param.brick_configs);
+        _constrained_space_info->setMotionValidator(motion_validator);
+    }
+    return true;
+}
+
 bool SpherePlanning::setPlanner() {
     switch (_param.planner) {
         case Parameter::RRTConnect: {
@@ -345,8 +362,8 @@ bool SpherePlanning::setPlanner() {
         case Parameter::CoMPNet: {
             _planner = std::make_shared<ompl::geometric::MPNetPlanner>(
                 _constrained_space_info,
-                "./data/pytorch_model/pnet_script_gpu.pt",
-                "./data/voxel/env0_embedded.csv");
+                _param.pnet,
+                _param.voxel);
             _planner->as<ompl::geometric::MPNetPlanner>()->setRange(0.05);
         }
         default: {

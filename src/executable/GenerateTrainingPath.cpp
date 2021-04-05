@@ -18,7 +18,7 @@ int plan(const std::string &brick_config_path, const std::string &start_path, co
     param.space = Parameter::PROJ;
     param.brick_configs = Eigen::Map<Eigen::Matrix2Xd>(arr.data<double>(), 2, 500);
 
-    const unsigned int N = 20000;
+    const unsigned int N = 10000;
     cnpy::NpyArray arr_start = cnpy::npy_load(start_path);
     Eigen::Matrix3Xd starts = Eigen::Map<Eigen::Matrix3Xd>(arr_start.data<double>(), 3, N);
     cnpy::NpyArray arr_goal = cnpy::npy_load(goal_path);
@@ -28,7 +28,7 @@ int plan(const std::string &brick_config_path, const std::string &start_path, co
     for (unsigned int i = 0; i < N; i++) {
         SpherePlanning instance(param);
         if (instance.planOnce(starts.col(i), goals.col(i))) {
-            auto path = instance.getPath();
+            auto path = instance.getSmoothPath(10);
             std::string path_name = (boost::format("path_%d") % i).str();
             std::string mode = (i == 0) ? "w" : "a";
             cnpy::npz_save(path_path, path_name, path.data(), {static_cast<unsigned long>(path.cols()), 3}, mode);
@@ -45,7 +45,7 @@ int plan(const std::string &brick_config_path, const std::string &start_path, co
 int main(int argc, char **argv) {
     srand(0);
     ompl::msg::setLogLevel(ompl::msg::LOG_NONE);
-    for (unsigned int i = 0; i < 10; i++) {
+    for (unsigned int i = 30; i < 40; i++) {
         std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
         std::string start_path = (boost::format("./data/train/env%d_start.npy") % i).str();
         std::string goal_path = (boost::format("./data/train/env%d_goal.npy") % i).str();

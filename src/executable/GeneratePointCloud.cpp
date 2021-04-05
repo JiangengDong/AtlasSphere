@@ -41,7 +41,7 @@ int generate_point_cloud(const std::string &brick_config_path, const std::string
     return 0;
 }
 
-int generate_torus_point_cloud(const std::string &point_cloud_path) {
+int generate_old_point_cloud(const std::string &point_cloud_path) {
     Parameter param;
     param.planner = Parameter::RRTConnect;
     param.space = Parameter::PROJ;
@@ -73,12 +73,14 @@ int generate_torus_point_cloud(const std::string &point_cloud_path) {
 int main(int argc, char **argv) {
     srand(0);
     ompl::msg::setLogLevel(ompl::msg::LOG_NONE);
-    std::cout << "Generating point cloud for torus environment " << std::endl;
-    generate_torus_point_cloud("./data/point_cloud/envOld.npy");
-    // for (unsigned int i = 0; i < 20; i++) {
-    //     std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
-    //     std::string point_cloud_path = (boost::format("./data/point_cloud/env%d.npy") % i).str();
-    //     std::cout << "Generating point cloud for environment " << i << std::endl;
-    //     generate_point_cloud(brick_config_path, point_cloud_path);
-    // }
+
+    std::cout << "Generating point cloud for old environment " << std::endl;
+    generate_old_point_cloud("./data/point_cloud/envOld.npy");
+
+    for (unsigned int i = 0; i < 40; i++) {
+        std::string brick_config_path = (boost::format("./data/brick_config/env%d.npy") % i).str();
+        std::string point_cloud_path = (boost::format("./data/point_cloud/env%d.npy") % i).str();
+        std::cout << "Generating point cloud for environment " << i << std::endl;
+        generate_point_cloud(brick_config_path, point_cloud_path);
+    }
 }

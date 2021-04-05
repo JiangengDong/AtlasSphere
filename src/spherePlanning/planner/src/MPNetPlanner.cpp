@@ -42,7 +42,7 @@
 #include <ompl/tools/config/SelfConfig.h>
 #include <ompl/util/String.h>
 
-ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si, std::string pnet_path, std::string voxel_path)
+ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si, const torch::jit::script::Module &pnet, const torch::Tensor &voxel)
     : base::Planner(si, "MPNetPlanner") {
     specs_.recognizedGoal = base::GOAL_SAMPLEABLE_REGION;
     specs_.directed = true;
@@ -51,7 +51,7 @@ ompl::geometric::MPNetPlanner::MPNetPlanner(const base::SpaceInformationPtr &si,
 
     connectionPoint_ = std::make_pair<base::State *, base::State *>(nullptr, nullptr);
     distanceBetweenTrees_ = std::numeric_limits<double>::infinity();
-    mpnet_sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet_path, voxel_path);
+    mpnet_sampler_ = std::make_shared<AtlasMPNet::MPNetSampler>(si_->getStateSpace().get(), pnet, voxel);
     simple_sampler_ = si_->allocStateSampler();
 }
 
@@ -106,19 +106,25 @@ void ompl::geometric::MPNetPlanner::clear() {
 }
 
 ompl::geometric::MPNetPlanner::GrowState ompl::geometric::MPNetPlanner::growTree(TreeData &tree, TreeGrowingInfo &tgi, Motion *rmotion) {
+    /* find closest state in the tree */
     Motion *nmotion = tree->nearest(rmotion);
+
     // this is designed for AtlasStateSpace only.
     std::vector<ompl::base::State *> stateList;
     bool reach = si_->getStateSpace()->as<ompl::base::ConstrainedStateSpace>()->discreteGeodesic(nmotion->state, rmotion->state, false, &stateList);
 
-    if (stateList.empty()                                        // did not traverse at all
-        || si_->equalStates(nmotion->state, stateList.back())) { // did not make a progress
+    if (stateList.empty() ||                                  // did not traverse at all
+        si_->equalStates(nmotion->state, stateList.back()) || // did not make a progress
+        !si_->checkMotion(nmotion->state, stateList.front())  // collide at the first step
+    ) {
         si_->freeStates(stateList);
         return TRAPPED;
     }
+
     Motion *motion = nullptr;
     for (auto dstate : stateList) {
-        if (!si_->satisfiesBounds(dstate))
+        if (!si_->satisfiesBounds(dstate) ||
+            !si_->checkMotion(nmotion->state, dstate))
             break;
         motion = new Motion(si_);
         si_->copyState(motion->state, dstate);

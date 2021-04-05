@@ -60,6 +60,8 @@ public:
 
     bool setStateValidityChecker();
 
+    bool setMotionValidator();
+
     bool setPlanner();
 
     bool setSimpleSetup();

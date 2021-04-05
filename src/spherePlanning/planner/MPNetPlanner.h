@@ -47,7 +47,7 @@ namespace geometric {
 class MPNetPlanner : public base::Planner {
 public:
     /** \brief Constructor */
-    MPNetPlanner(const base::SpaceInformationPtr &si, std::string pnet_path, std::string voxel_path);
+    MPNetPlanner(const base::SpaceInformationPtr &si, const torch::jit::script::Module &pnet, const torch::Tensor &voxel);
 
     ~MPNetPlanner() override;
 

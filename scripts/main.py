@@ -5,6 +5,8 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+import os
 
 
 def get_data() -> [torch.Tensor]:
@@ -23,11 +25,18 @@ def get_data() -> [torch.Tensor]:
 
 
 def main():
+    now = datetime.now()
+    unique_name = now.strftime("%Y_%m_%d_%H_%M_%S")
+    log_dir = os.path.join("./data/tensorboard", unique_name)
+    save_dir = os.path.join("./data/pytorch_model", unique_name)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
+
     inputs, outputs, voxel_idxs, voxels = get_data()
     dataset = DataLoader(TensorDataset(inputs, outputs, voxel_idxs), batch_size=256, shuffle=True)
     mpnet = MPNet().cuda()
     optimizer = torch.optim.Adam(mpnet.parameters())
-    writer = SummaryWriter("./data/tensorboard")
+    writer = SummaryWriter(log_dir)
 
     def id_to_voxel(idxs: torch.Tensor) -> torch.Tensor:
         return torch.index_select(voxels, 0, idxs)
@@ -44,18 +53,18 @@ def main():
 
         writer.add_scalar("loss", loss, idx)
 
-        if idx % 200 == 0:
-            torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight_gpu.pt")
-            torch.jit.script(mpnet).save("./data/pytorch_model/mpnet_script_gpu.pt")
-            torch.jit.script(mpnet.encoder).save("./data/pytorch_model/enet_script_gpu.pt")
-            torch.jit.script(mpnet.pnet).save("./data/pytorch_model/pnet_script_gpu.pt")
+        if idx % 1000 == 0:
+            torch.save(mpnet.state_dict(), os.path.join(save_dir, "mpnet_weight_gpu.pt"))
+            torch.jit.script(mpnet).save(os.path.join(save_dir, "mpnet_script_gpu.pt"))
+            torch.jit.script(mpnet.encoder).save(os.path.join(save_dir, "enet_script_gpu.pt"))
+            torch.jit.script(mpnet.pnet).save(os.path.join(save_dir, "pnet_script_gpu.pt"))
 
         idx += 1
 
-    torch.save(mpnet.state_dict(), "./data/pytorch_model/mpnet_weight_gpu.pt")
-    torch.jit.script(mpnet).save("./data/pytorch_model/mpnet_script_gpu.pt")
-    torch.jit.script(mpnet.encoder).save("./data/pytorch_model/enet_script_gpu.pt")
-    torch.jit.script(mpnet.pnet).save("./data/pytorch_model/pnet_script_gpu.pt")
+    torch.save(mpnet.state_dict(), os.path.join(save_dir, "mpnet_weight_gpu.pt"))
+    torch.jit.script(mpnet).save(os.path.join(save_dir, "mpnet_script_gpu.pt"))
+    torch.jit.script(mpnet.encoder).save(os.path.join(save_dir, "enet_script_gpu.pt"))
+    torch.jit.script(mpnet.pnet).save(os.path.join(save_dir, "pnet_script_gpu.pt"))
 
 
 if __name__ == "__main__":
